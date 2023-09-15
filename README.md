@@ -17,7 +17,7 @@ automatic-submission:
 Configure the dispatcher by adding the following rule:
 
 ```elixir
-match "/berichten-melding/*path" do
+match "/melding-bericht/*path" do
   Proxy.forward conn, path, "http://berichten-melding-service/melding"
 end
 ```

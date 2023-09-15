@@ -1,4 +1,6 @@
 import * as env from 'env-var';
+import * as N3 from 'n3';
+const { namedNode } = N3.DataFactory;
 
 export const AUTOMATIC_SUBMISSION_JSON_LD_CONTEXT_ENDPOINT = env
   .get('AUTOMATIC_SUBMISSION_JSON_LD_CONTEXT_ENDPOINT')
@@ -89,7 +91,15 @@ export const PREFIX_TABLE = {
   tasko: 'http://lblod.data.gift/id/jobs/concept/TaskOperation/',
   jobo: 'http://lblod.data.gift/id/jobs/concept/JobOperation/',
   hrvst: 'http://lblod.data.gift/vocabularies/harvesting/',
+  sch: 'http://schema.org/',
 };
+
+export const NAMESPACES = (() => {
+  const all = {};
+  for (const key in PREFIXES)
+    all[key] = (pred) => namedNode(`${PREFIXES[key]}${pred}`);
+  return all;
+})();
 
 export const PREFIXES = (() => {
   const all = [];
