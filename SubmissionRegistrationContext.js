@@ -1,4 +1,4 @@
-export const MessageRegistrationContext = {
+export const SubmissionRegistrationContext = {
   prov: 'http://www.w3.org/ns/prov#',
   dct: 'http://purl.org/dc/terms/',
   muAccount: 'http://mu.semte.ch/vocabularies/account/',
@@ -8,23 +8,28 @@ export const MessageRegistrationContext = {
   pav: 'http://purl.org/pav/',
   adms: 'http://www.w3.org/ns/adms#',
   wotSec: 'https://www.w3.org/2019/wot/security#',
-  core: 'http://mu.semte.ch/vocabularies/core/',
-  schema: 'http://schema.org/',
-  berichten: 'http://data.lblod.info/id/berichten/',
-  conversaties: 'http://data.lblod.info/id/conversaties/',
-  auths: 'http://data.lblod.info/authentications/',
-  confs: 'http://data.lblod.info/configurations/',
-  creds: 'http://data.lblod.info/id/conversaties/',
   organization: {
-    '@id': 'pav:authoredBy',
+    '@id': 'pav:createdBy',
     '@type': '@id',
   },
   href: {
     '@type': '@id',
     '@id': 'prov:atLocation',
   },
+  submittedResource: {
+    '@type': '@id',
+    '@id': 'dct:subject',
+  },
   key: 'muAccount:key',
-  publisher: 'pav:contributedBy',
+  publisher: 'pav:providedBy',
+  uri: {
+    '@type': '@id',
+    '@id': '@id',
+  },
+  status: {
+    '@type': '@id',
+    '@id': 'adms:status',
+  },
   authentication: 'dgftSec:targetAuthenticationConfiguration',
   configuration: 'dgftSec:securityConfiguration',
   credentials: 'dgftSec:secrets',
@@ -48,10 +53,8 @@ export const MessageRegistrationContext = {
   clientSecret: 'dgftOauth:clientSecret',
   username: 'meb:username',
   password: 'muAccount:password',
-  message: {
+  submission: {
     '@type': '@id',
-    '@id': 'schema:hasPart',
+    '@id': 'dct:subject',
   },
-  type: '@type',
-  id: '@id',
 };

@@ -1,28 +1,31 @@
 import { app, errorHandler } from 'mu';
 import {
   verifyKeyAndOrganisation,
-  storeMessage,
-  exists,
+  storeSubmission,
+  isSubmitted,
   sendErrorAlert,
   cleanseRequestBody,
-} from './service';
+} from './support';
 import bodyParser from 'body-parser';
 import * as jsonld from 'jsonld';
 import {
   enrichBodyForRegister,
+  enrichBodyForStatus,
   extractInfoFromTriplesForRegister,
   extractAuthentication,
+  validateExtractedInfo,
 } from './jsonld-input';
-//import * as env from './env';
+import * as env from './env';
 import * as config from './config';
-//import {
-//  getTaskInfoFromRemoteDataObject,
-//  downloadTaskUpdate,
-//} from './downloadTaskManagement';
-//import { Lock } from 'async-await-mutex-lock';
-//import * as N3 from 'n3';
-//const { namedNode } = N3.DataFactory;
-//import rateLimit from 'express-rate-limit';
+import {
+  getTaskInfoFromRemoteDataObject,
+  downloadTaskUpdate,
+} from './downloadTaskManagement';
+import { getSubmissionStatusRdfJS } from './jobAndTaskManagement';
+import { Lock } from 'async-await-mutex-lock';
+import * as N3 from 'n3';
+const { namedNode } = N3.DataFactory;
+import rateLimit from 'express-rate-limit';
 
 app.use(errorHandler);
 // support both jsonld and json content-type
@@ -33,10 +36,11 @@ app.post('/melding', async function (req, res) {
   try {
     ensureValidContentType(req.get('content-type'));
     ensureValidDataType(req.body);
-    // Enrich the body with minimum required JSON-LD properties
+    // enrich the body with minimum required json LD properties
     const enrichedBody = await enrichBodyForRegister(req.body);
     // extracted the minimal required triples
     const store = await jsonLdToStore(enrichedBody);
+    //const triples = await jsonld.default.toRDF(enrichedBody, {});
 
     const extracted = extractInfoFromTriplesForRegister(store);
 
@@ -44,30 +48,31 @@ app.post('/melding', async function (req, res) {
     ensureMinimalRegisterPayload(extracted);
 
     // check if the extracted properties are valid
-    //ensureValidRegisterProperties(store);
+    ensureValidRegisterProperties(extracted);
 
-    const { message, conversation, authenticationConfiguration } = extracted;
+    const { submittedResource, authenticationConfiguration } = extracted;
 
     // authenticate vendor
     const organisationID = await ensureAuthorisation(store);
 
-    const orgGraph = config.GRAPH_TEMPLATE.replace(
+    const submissionGraph = config.GRAPH_TEMPLATE.replace(
       '~ORGANIZATION_ID~',
       organisationID,
     );
 
-    await ensureConversationExists(conversation, orgGraph);
     // check if the resource has already been submitted
-    await ensureNotSubmitted(message, orgGraph);
+    await ensureNotSubmitted(submittedResource, submissionGraph);
 
-    //NOTE until here
     // process the new auto-submission
-    const { messageUri } = await storeMessage(
-      extracted,
-      orgGraph,
+    const { submissionUri, jobUri } = await storeSubmission(
+      store,
+      submissionGraph,
       authenticationConfiguration,
     );
-    res.status(201).send({ message: messageUri }).end();
+    res
+      .status(201)
+      .send({ uri: submissionUri, submission: submissionUri, job: jobUri })
+      .end();
   } catch (e) {
     console.error(e.message);
     if (!e.alreadyStoredError) {
@@ -96,75 +101,92 @@ app.post('/melding', async function (req, res) {
   }
 });
 
-//const lock = new Lock();
+const lock = new Lock();
 
-//app.post('/download-status-update', async function (req, res) {
-//  //The locking is needed because the delta-notifier sends the same request twice to this API because a status update is both deleted and inserted. We don't want this; we can't change that for now, so we block such that no 2 requests are handled at the same time and then limit the way status changes can be performed.
-//  await lock.acquire();
-//  try {
-//    //Because the delta-notifier is lazy/incompetent we need a lot more filtering before we actually know that a resource's status has been set to ongoing
-//    const actualStatusChange = req.body
-//      .map((changeset) => changeset.inserts)
-//      .filter((inserts) => inserts.length > 0)
-//      .flat()
-//      .filter((insert) => insert.predicate.value === env.ADMS_STATUS_PREDICATE)
-//      .filter(
-//        (insert) =>
-//          insert.object.value === env.DOWNLOAD_STATUSES.ongoing ||
-//          insert.object.value === env.DOWNLOAD_STATUSES.success ||
-//          insert.object.value === env.DOWNLOAD_STATUSES.failure,
-//      );
-//    for (const remoteDataObjectTriple of actualStatusChange) {
-//      const {
-//        downloadTaskUri,
-//        jobUri,
-//        oldStatus,
-//        orgGraph,
-//        fileUri,
-//        errorMsg,
-//      } = await getTaskInfoFromRemoteDataObject(
-//        remoteDataObjectTriple.subject.value,
-//      );
-//      //Update the status also passing the old status to not make any illegal updates
-//      if (jobUri)
-//        await downloadTaskUpdate(
-//          orgGraph,
-//          downloadTaskUri,
-//          jobUri,
-//          oldStatus,
-//          remoteDataObjectTriple.object.value,
-//          remoteDataObjectTriple.subject.value,
-//          fileUri,
-//          errorMsg,
-//        );
-//    }
-//    res.status(200).send().end();
-//  } catch (e) {
-//    console.error(e.message);
-//    if (!e.alreadyStoredError)
-//      sendErrorAlert({
-//        message: 'Could not process a download status update',
-//        detail: JSON.stringify({ error: e.message }),
-//      });
-//    res.status(500).json({
-//      errors: [
-//        {
-//          title:
-//            'An error occured while updating the status of a downloaded file',
-//          error: JSON.stringify(e),
-//        },
-//      ],
-//    });
-//  } finally {
-//    lock.release();
-//  }
-//});
+app.post('/download-status-update', async function (req, res) {
+  //The locking is needed because the delta-notifier sends the same request twice to this API because a status update is both deleted and inserted. We don't want this; we can't change that for now, so we block such that no 2 requests are handled at the same time and then limit the way status changes can be performed.
+  await lock.acquire();
+  try {
+    //Because the delta-notifier is lazy/incompetent we need a lot more filtering before we actually know that a resource's status has been set to ongoing
+    const actualStatusChange = req.body
+      .map((changeset) => changeset.inserts)
+      .filter((inserts) => inserts.length > 0)
+      .flat()
+      .filter((insert) => insert.predicate.value === env.ADMS_STATUS_PREDICATE)
+      .filter(
+        (insert) =>
+          insert.object.value === env.DOWNLOAD_STATUSES.ongoing ||
+          insert.object.value === env.DOWNLOAD_STATUSES.success ||
+          insert.object.value === env.DOWNLOAD_STATUSES.failure,
+      );
+    for (const remoteDataObjectTriple of actualStatusChange) {
+      const {
+        downloadTaskUri,
+        jobUri,
+        oldStatus,
+        submissionGraph,
+        fileUri,
+        errorMsg,
+      } = await getTaskInfoFromRemoteDataObject(
+        remoteDataObjectTriple.subject.value,
+      );
+      //Update the status also passing the old status to not make any illegal updates
+      if (jobUri)
+        await downloadTaskUpdate(
+          submissionGraph,
+          downloadTaskUri,
+          jobUri,
+          oldStatus,
+          remoteDataObjectTriple.object.value,
+          remoteDataObjectTriple.subject.value,
+          fileUri,
+          errorMsg,
+        );
+    }
+    res.status(200).send().end();
+  } catch (e) {
+    console.error(e.message);
+    if (!e.alreadyStoredError)
+      sendErrorAlert({
+        message: 'Could not process a download status update',
+        detail: JSON.stringify({ error: e.message }),
+      });
+    res.status(500).json({
+      errors: [
+        {
+          title:
+            'An error occured while updating the status of a downloaded file',
+          error: JSON.stringify(e),
+        },
+      ],
+    });
+  } finally {
+    lock.release();
+  }
+});
+
+const statusLimiter = rateLimit({
+  windowMs: 60000,
+  max: 5,
+  message:
+    'There have been too many requests about this submission. The amount of status requests is limited to 5 per minute. Try again later.',
+  keyGenerator: async (req) => {
+    await ensureValidContentType(req.get('content-type'));
+    const enrichedBody = await enrichBodyForStatus(req.body);
+    const store = await jsonLdToStore(enrichedBody);
+    const submissionUris = store.getObjects(
+      undefined,
+      namedNode('http://purl.org/dc/terms/subject'),
+    );
+    const submissionUri = submissionUris[0]?.value;
+    return submissionUri || '';
+  },
+});
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Helpers
 ///////////////////////////////////////////////////////////////////////////////
-
-//TODO return stores with thi triples for creating a JSON-LD error response.
 
 function ensureValidContentType(contentType) {
   if (!/application\/(ld\+)?json/.test(contentType)) {
@@ -202,36 +224,25 @@ function ensureMinimalRegisterPayload(object) {
     }
 }
 
-//function ensureValidRegisterProperties(object) {
-//  const { isValid, errors } = validateExtractedInfo(object);
-//  if (!isValid) {
-//    const err = new Error(
-//      `Some given properties are invalid:\n${errors
-//        .map((e) => e.message)
-//        .join('\n')}
-//        `,
-//    );
-//    err.errorCode = 400;
-//    err.errorBody = { errors };
-//    throw err;
-//  }
-//}
-
-async function ensureConversationExists(conversation, orgGraph) {
-  if (!(await exists(conversation, orgGraph))) {
+function ensureValidRegisterProperties(object) {
+  const { isValid, errors } = validateExtractedInfo(object);
+  if (!isValid) {
     const err = new Error(
-      `The given conversation <${conversation}> does not exist.`,
+      `Some given properties are invalid:\n${errors
+        .map((e) => e.message)
+        .join('\n')}
+        `,
     );
-    err.errorCode = 404;
-    err.errorBody = { errors: [{ title: err.message }] };
+    err.errorCode = 400;
+    err.errorBody = { errors };
     throw err;
   }
 }
 
-async function ensureNotSubmitted(message, orgGraph) {
-  if (await exists(message, orgGraph)) {
+async function ensureNotSubmitted(submittedResource, submissionGraph) {
+  if (await isSubmitted(submittedResource, submissionGraph)) {
     const err = new Error(
-      `The given message <${message}> has already been submitted.`,
+      `The given submittedResource <${submittedResource}> has already been submitted.`,
     );
     err.errorCode = 409;
     err.errorBody = { errors: [{ title: err.message }] };
@@ -279,9 +290,9 @@ async function jsonLdToStore(jsonLdObject) {
   return store;
 }
 
-//async function storeToJsonLd(store, context, frame) {
-//  const jsonld1 = await jsonld.default.fromRDF([...store], {});
-//  const framed = await jsonld.default.frame(jsonld1, frame);
-//  const compacted = await jsonld.default.compact(framed, context);
-//  return compacted;
-//}
+async function storeToJsonLd(store, context, frame) {
+  const jsonld1 = await jsonld.default.fromRDF([...store], {});
+  const framed = await jsonld.default.frame(jsonld1, frame);
+  const compacted = await jsonld.default.compact(framed, context);
+  return compacted;
+}

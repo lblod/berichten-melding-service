@@ -1,60 +1,36 @@
-import * as env from 'env-var';
-import * as N3 from 'n3';
-const { namedNode } = N3.DataFactory;
+import process from 'node:process';
 
-export const AUTOMATIC_SUBMISSION_JSON_LD_CONTEXT_ENDPOINT = env
-  .get('AUTOMATIC_SUBMISSION_JSON_LD_CONTEXT_ENDPOINT')
-  .required()
-  .default(
-    'https://lblod.data.gift/contexts/automatische-melding/v1/context.json',
-  )
-  .asUrlString();
-
-export const GRAPH_TEMPLATE = env
-  .get('GRAPH_TEMPLATE')
-  .example(
-    'http://mu.semte.ch/graphs/organizations/~ORGANIZATION_ID~/LoketLB-toezichtGebruiker',
-  )
-  .default(
-    'http://mu.semte.ch/graphs/organizations/~ORGANIZATION_ID~/LoketLB-toezichtGebruiker',
-  )
-  .asUrlString();
-
-(function checkEnvVars() {
-  if (!/~ORGANIZATION_ID~/g.test(GRAPH_TEMPLATE))
-    throw new Error(
-      `The GRAPH_TEMPLATE environment variable "${GRAPH_TEMPLATE}" does not contain a "~ORGANIZATION_ID~".`,
-    );
-})();
-
-//export const CONCEPT_STATUS =
-//  'http://lblod.data.gift/concepts/79a52da4-f491-4e2f-9374-89a13cde8ecd';
-//export const SUBMITTABLE_STATUS =
-//  'http://lblod.data.gift/concepts/f6330856-e261-430f-b949-8e510d20d0ff';
+export const AUTOMATIC_SUBMISSION_JSON_LD_CONTEXT_ENDPOINT =
+  process.env.AUTOMATIC_SUBMISSION_JSON_LD_CONTEXT_ENDPOINT ||
+  'https://lblod.data.gift/contexts/automatische-melding/v1/context.json';
+export const CONCEPT_STATUS =
+  'http://lblod.data.gift/concepts/79a52da4-f491-4e2f-9374-89a13cde8ecd';
+export const SUBMITTABLE_STATUS =
+  'http://lblod.data.gift/concepts/f6330856-e261-430f-b949-8e510d20d0ff';
 
 export const ADMS_STATUS_PREDICATE = 'http://www.w3.org/ns/adms#status';
 
-//export const JOB_PREFIX = 'http://data.lblod.info/id/automatic-submission-job/';
+export const JOB_PREFIX = 'http://data.lblod.info/id/automatic-submission-job/';
 
-//export const DOWNLOAD_STATUSES = {
-//  scheduled: 'http://lblod.data.gift/file-download-statuses/sheduled',
-//  ongoing: 'http://lblod.data.gift/file-download-statuses/ongoing',
-//  success: 'http://lblod.data.gift/file-download-statuses/success',
-//  failure: 'http://lblod.data.gift/file-download-statuses/failure',
-//};
-//export const TASK_STATUSES = {
-//  scheduled: 'http://redpencil.data.gift/id/concept/JobStatus/scheduled',
-//  busy: 'http://redpencil.data.gift/id/concept/JobStatus/busy',
-//  success: 'http://redpencil.data.gift/id/concept/JobStatus/success',
-//  failed: 'http://redpencil.data.gift/id/concept/JobStatus/failed',
-//};
+export const DOWNLOAD_STATUSES = {
+  scheduled: 'http://lblod.data.gift/file-download-statuses/sheduled',
+  ongoing: 'http://lblod.data.gift/file-download-statuses/ongoing',
+  success: 'http://lblod.data.gift/file-download-statuses/success',
+  failure: 'http://lblod.data.gift/file-download-statuses/failure',
+};
+export const TASK_STATUSES = {
+  scheduled: 'http://redpencil.data.gift/id/concept/JobStatus/scheduled',
+  busy: 'http://redpencil.data.gift/id/concept/JobStatus/busy',
+  success: 'http://redpencil.data.gift/id/concept/JobStatus/success',
+  failed: 'http://redpencil.data.gift/id/concept/JobStatus/failed',
+};
 
 export const BASIC_AUTH =
   'https://www.w3.org/2019/wot/security#BasicSecurityScheme';
 export const OAUTH2 =
   'https://www.w3.org/2019/wot/security#OAuth2SecurityScheme';
 export const CREATOR =
-  'http://lblod.data.gift/services/berichten-melding-service';
+  'http://lblod.data.gift/services/automatic-submission-service';
 
 export const PREFIX_TABLE = {
   meb: 'http://rdf.myexperiment.org/ontologies/base/',
@@ -91,15 +67,7 @@ export const PREFIX_TABLE = {
   tasko: 'http://lblod.data.gift/id/jobs/concept/TaskOperation/',
   jobo: 'http://lblod.data.gift/id/jobs/concept/JobOperation/',
   hrvst: 'http://lblod.data.gift/vocabularies/harvesting/',
-  sch: 'http://schema.org/',
 };
-
-export const NAMESPACES = (() => {
-  const all = {};
-  for (const key in PREFIXES)
-    all[key] = (pred) => namedNode(`${PREFIXES[key]}${pred}`);
-  return all;
-})();
 
 export const PREFIXES = (() => {
   const all = [];

@@ -1,71 +1,109 @@
 import { uuid } from 'mu';
 import * as env from './env';
-import { NAMESPACES as ns } from './env';
-import { MessageRegistrationContext } from './Contexts';
+import { SubmissionRegistrationContext } from './SubmissionRegistrationContext';
 import * as N3 from 'n3';
 const { namedNode } = N3.DataFactory;
 
 /*
  * This method ensures some basic things on the root node of the request body
- * e.g the root node should have a URI (@id), context (@context) and a type. it
- * also adds a uuid for internal processing, since it's used for constructing
- * the URI if necessary
+ * e.g the root node should have a URI (@id), context (@context) and a type.
+ * it also adds a uuid for internal processing, since it's used for constructing the URI if necessary
  */
 export async function enrichBodyForRegister(originalBody) {
-  if (!originalBody['@context'])
-    originalBody['@context'] = MessageRegistrationContext;
-  if (!originalBody.type) originalBody.type = 'schema:Conversation';
-
-  //const id = uuid();
-  //originalBody['core:uuid'] = id;
-  //if (!originalBody.id) originalBody.id = `berichten:${id}`;
-
-  if (typeof originalBody?.message === 'string')
-    originalBody.message = {
-      id: originalBody.message,
-      type: 'schema:Message',
-    };
-  else if (!originalBody?.message?.type)
-    originalBody.message.type = 'schema:Message';
-
+  if (!originalBody['@type']) {
+    originalBody['@type'] = 'melding:BerichtencentrumMelding'; //Subclass of 'meb:Submission';
+  }
+  if (!originalBody['@context']) {
+    originalBody['@context'] = SubmissionRegistrationContext;
+  }
+  const id = uuid();
+  originalBody['http://mu.semte.ch/vocabularies/core/uuid'] = id;
+  if (!originalBody['@id']) {
+    originalBody['@id'] = `http://data.lblod.info/submissions/${id}`;
+  }
+  if (!originalBody.status) {
+    // concept status by default
+    originalBody.status = env.CONCEPT_STATUS;
+  }
   if (originalBody.authentication) {
-    originalBody.authentication.id = `auths:${uuid()}`;
-    originalBody.authentication.configuration.id = `confs:${uuid()}`;
-    originalBody.authentication.credentials.id = `creds:${uuid()}`;
+    originalBody.authentication[
+      '@id'
+    ] = `http://data.lblod.info/authentications/${uuid()}`;
+    originalBody.authentication.configuration[
+      '@id'
+    ] = `http://data.lblod.info/configurations/${uuid()}`;
+    originalBody.authentication.credentials[
+      '@id'
+    ] = `http://data.lblod.info/credentials/${uuid()}`;
   }
   return originalBody;
 }
 
+export async function enrichBodyForStatus(body) {
+  if (!body['@context']) {
+    body['@context'] = SubmissionRegistrationContext;
+  }
+  const requestId = uuid();
+  if (!body['@id'])
+    body[
+      '@id'
+    ] = `http://data.lblod.info/submission-status-request/${requestId}`;
+  if (!body['@type'])
+    body['@type'] = 'http://data.lblod.info/submission-status-request/Request';
+  if (body.authentication) {
+    body.authentication[
+      '@id'
+    ] = `http://data.lblod.info/authentications/${uuid()}`;
+    body.authentication.configuration[
+      '@id'
+    ] = `http://data.lblod.info/configurations/${uuid()}`;
+    body.authentication.credentials[
+      '@id'
+    ] = `http://data.lblod.info/credentials/${uuid()}`;
+  }
+  return body;
+}
+
 export function extractInfoFromTriplesForRegister(store) {
-  const hrefs = store.getObjects(undefined, ns.prov`atLocation`);
-  const conversations = store.getObjects(
+  const locationHrefs = store.getObjects(
     undefined,
-    ns.rdf`type`,
-    ns.sch`Conversation`,
+    namedNode('http://www.w3.org/ns/prov#atLocation'),
   );
-  const messages = store.getObjects(undefined, ns.sch`hasPart`);
+  const submittedResources = store.getObjects(
+    undefined,
+    namedNode('http://purl.org/dc/terms/subject'),
+  );
+  const statuses = store.getObjects(
+    undefined,
+    namedNode('http://www.w3.org/ns/adms#status'),
+  );
   const authenticationConfigurations = store.getObjects(
     undefined,
-    ns.dgftSec`targetAuthenticationConfiguration`,
+    namedNode(
+      'http://lblod.data.gift/vocabularies/security/targetAuthenticationConfiguration',
+    ),
   );
-  const organizations = store.getObjects(undefined, ns.pav`authoredBy`);
-  const vendors = store.getObjects(undefined, ns.pav`contributedBy`);
-  const keys = store.getObjects(vendors[0], ns.muAccount`key`);
   return {
-    conversation: conversations[0]?.value,
-    message: messages[0]?.value,
-    href: hrefs[0]?.value,
+    submittedResource: submittedResources[0]?.value,
+    status: statuses[0]?.value,
     authenticationConfiguration: authenticationConfigurations[0]?.value,
-    organization: organizations[0]?.value,
-    publisher: vendors[0]?.value,
-    key: keys[0]?.value,
+    href: locationHrefs[0]?.value,
   };
 }
 
 export function extractAuthentication(store) {
-  const keys = store.getObjects(undefined, ns.muAccount`key`);
-  const vendors = store.getObjects(undefined, ns.pav`providedBy`);
-  const organisations = store.getObjects(undefined, ns.pav`createdBy`);
+  const keys = store.getObjects(
+    undefined,
+    namedNode('http://mu.semte.ch/vocabularies/account/key'),
+  );
+  const vendors = store.getObjects(
+    undefined,
+    namedNode('http://purl.org/pav/providedBy'),
+  );
+  const organisations = store.getObjects(
+    undefined,
+    namedNode('http://purl.org/pav/createdBy'),
+  );
   return {
     key: keys[0]?.value,
     vendor: vendors[0]?.value,
@@ -73,11 +111,11 @@ export function extractAuthentication(store) {
   };
 }
 
-//export function validateExtractedInfo(extracted) {
-//  const { status } = extracted;
-//  const errors = [];
-//  if (/*something wrong*/)
-//    errors.push({ message: 'Property <name> is not valid.' });
-//
-//  return { isValid: errors.length === 0, errors };
-//}
+export function validateExtractedInfo(extracted) {
+  const { status } = extracted;
+  const errors = [];
+  if (status !== env.CONCEPT_STATUS && status !== env.SUBMITTABLE_STATUS)
+    errors.push({ message: 'Property status is not valid.' });
+
+  return { isValid: errors.length === 0, errors };
+}
