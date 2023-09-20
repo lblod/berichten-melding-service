@@ -1,4 +1,6 @@
 import process from 'node:process';
+import * as N3 from 'n3';
+const { namedNode } = N3.DataFactory;
 
 export const AUTOMATIC_SUBMISSION_JSON_LD_CONTEXT_ENDPOINT =
   process.env.AUTOMATIC_SUBMISSION_JSON_LD_CONTEXT_ENDPOINT ||
@@ -25,12 +27,16 @@ export const TASK_STATUSES = {
   failed: 'http://redpencil.data.gift/id/concept/JobStatus/failed',
 };
 
+export const OPERATIONS = {
+  harvestBericht: 'http://lblod.data.gift/id/jobs/concept/JobOperation/harvestBericht',
+}
+
 export const BASIC_AUTH =
   'https://www.w3.org/2019/wot/security#BasicSecurityScheme';
 export const OAUTH2 =
   'https://www.w3.org/2019/wot/security#OAuth2SecurityScheme';
 export const CREATOR =
-  'http://lblod.data.gift/services/automatic-submission-service';
+  'http://lblod.data.gift/services/berichten-melding-service';
 
 export const PREFIX_TABLE = {
   meb: 'http://rdf.myexperiment.org/ontologies/base/',
@@ -74,4 +80,11 @@ export const PREFIXES = (() => {
   for (const key in PREFIX_TABLE)
     all.push(`PREFIX ${key}: <${PREFIX_TABLE[key]}>`);
   return all.join('\n');
+})();
+
+export const NAMESPACES = (() => {
+  const all = {};
+  for (const key in PREFIX_TABLE)
+    all[key] = (pred) => namedNode(`${PREFIX_TABLE[key]}${pred}`);
+  return all;
 })();

@@ -11,12 +11,11 @@ import { SparqlJsonParser } from 'sparqljson-parse';
 import * as N3 from 'n3';
 const { quad } = N3.DataFactory;
 
-export async function startJob(submissionGraph, meldingUri) {
+export async function startJob(submissionGraph, jobUri, berichtUri) {
   try {
     const jobUuid = uuid();
     const nowSparql = sparqlEscapeDateTime(new Date().toISOString());
     // Make a cogs:Job for the whole process
-    // The prov:generated is strictly not necessary for the model, maybe nice to have
     const jobQuery = `
       ${env.PREFIXES}
       INSERT DATA {
@@ -24,13 +23,11 @@ export async function startJob(submissionGraph, meldingUri) {
           asj:${jobUuid}
             a cogs:Job ;
             mu:uuid ${sparqlEscapeString(jobUuid)} ;
-            dct:creator services:automatic-submission-service ;
+            dct:creator services:berichten-melding-service ;
             adms:status js:busy ;
             dct:created ${nowSparql} ;
             dct:modified ${nowSparql} ;
-            task:cogsOperation cogs:TransformationProcess ;
-            task:operation jobo:automaticSubmissionFlow ;
-            prov:generated ${sparqlEscapeUri(meldingUri)} .
+            task:operation jobo:harvestBericht.
         }
       }
     `;
@@ -224,15 +221,15 @@ export async function automaticSubmissionTaskSuccess(
   return downloadTaskCreate(submissionGraph, jobUri, remoteDataObjectUri);
 }
 
-export async function automaticSubmissionTaskFail(
+export async function failTask(
   submissionGraph,
-  automaticSubmissionTaskUri,
+  taskUri,
   jobUri,
   errorUri,
 ) {
   const nowSparql = sparqlEscapeDateTime(new Date().toISOString());
   const automaticSubmissionTaskUriSparql = sparqlEscapeUri(
-    automaticSubmissionTaskUri,
+    taskUri,
   );
   const errorUriSparql = sparqlEscapeUri(errorUri);
   const assTaskQuery = `

@@ -1,6 +1,5 @@
 import { uuid } from 'mu';
-import * as env from './env';
-import { SubmissionRegistrationContext } from './SubmissionRegistrationContext';
+import { messageRegistrationContext } from './Contexts';
 import * as N3 from 'n3';
 const { namedNode } = N3.DataFactory;
 
@@ -8,22 +7,23 @@ const { namedNode } = N3.DataFactory;
  * This method ensures some basic things on the root node of the request body
  * e.g the root node should have a URI (@id), context (@context) and a type.
  * it also adds a uuid for internal processing, since it's used for constructing the URI if necessary
+ * TODO: implementation this needs revision:
+ *  it defies the purpose of jsonLd; if vendor provides own context, this breaks
  */
 export async function enrichBodyForRegister(originalBody) {
-  if (!originalBody['@type']) {
-    originalBody['@type'] = 'melding:BerichtencentrumMelding'; //Subclass of 'meb:Submission';
-  }
+
   if (!originalBody['@context']) {
-    originalBody['@context'] = SubmissionRegistrationContext;
+    originalBody['@context'] = messageRegistrationContext;
+  }
+  if (!originalBody['@type']) {
+    // Note: we don't store the submission; it will just trigger a job
+    originalBody['@type'] = 'meb:Submission';
   }
   const id = uuid();
   originalBody['http://mu.semte.ch/vocabularies/core/uuid'] = id;
+
   if (!originalBody['@id']) {
-    originalBody['@id'] = `http://data.lblod.info/submissions/${id}`;
-  }
-  if (!originalBody.status) {
-    // concept status by default
-    originalBody.status = env.CONCEPT_STATUS;
+    originalBody['@id'] = `http://data.lblod.info/job/id/${id}`;
   }
   if (originalBody.authentication) {
     originalBody.authentication[
@@ -36,32 +36,8 @@ export async function enrichBodyForRegister(originalBody) {
       '@id'
     ] = `http://data.lblod.info/credentials/${uuid()}`;
   }
-  return originalBody;
-}
 
-export async function enrichBodyForStatus(body) {
-  if (!body['@context']) {
-    body['@context'] = SubmissionRegistrationContext;
-  }
-  const requestId = uuid();
-  if (!body['@id'])
-    body[
-      '@id'
-    ] = `http://data.lblod.info/submission-status-request/${requestId}`;
-  if (!body['@type'])
-    body['@type'] = 'http://data.lblod.info/submission-status-request/Request';
-  if (body.authentication) {
-    body.authentication[
-      '@id'
-    ] = `http://data.lblod.info/authentications/${uuid()}`;
-    body.authentication.configuration[
-      '@id'
-    ] = `http://data.lblod.info/configurations/${uuid()}`;
-    body.authentication.credentials[
-      '@id'
-    ] = `http://data.lblod.info/credentials/${uuid()}`;
-  }
-  return body;
+  return originalBody;
 }
 
 export function extractInfoFromTriplesForRegister(store) {
@@ -73,21 +49,31 @@ export function extractInfoFromTriplesForRegister(store) {
     undefined,
     namedNode('http://purl.org/dc/terms/subject'),
   );
-  const statuses = store.getObjects(
-    undefined,
-    namedNode('http://www.w3.org/ns/adms#status'),
-  );
   const authenticationConfigurations = store.getObjects(
     undefined,
     namedNode(
       'http://lblod.data.gift/vocabularies/security/targetAuthenticationConfiguration',
     ),
   );
+  const secrets = store.getObjects(
+    undefined,
+    namedNode(
+      'http://lblod.data.gift/vocabularies/security/secrets',
+    ),
+  );
+  const securityConfigs = store.getObjects(
+    undefined,
+    namedNode(
+      'http://lblod.data.gift/vocabularies/security/securityConfiguration',
+    ),
+  );
+
   return {
-    submittedResource: submittedResources[0]?.value,
-    status: statuses[0]?.value,
-    authenticationConfiguration: authenticationConfigurations[0]?.value,
     href: locationHrefs[0]?.value,
+    submittedResource: submittedResources[0]?.value,
+    authenticationConfiguration: authenticationConfigurations[0]?.value,
+    secret: secrets[0]?.value,
+    securityConfig: securityConfigs[0]?.value,
   };
 }
 
@@ -114,8 +100,6 @@ export function extractAuthentication(store) {
 export function validateExtractedInfo(extracted) {
   const { status } = extracted;
   const errors = [];
-  if (status !== env.CONCEPT_STATUS && status !== env.SUBMITTABLE_STATUS)
-    errors.push({ message: 'Property status is not valid.' });
-
+  console.warn(`TODO: validation function called but is a void function`);
   return { isValid: errors.length === 0, errors };
 }

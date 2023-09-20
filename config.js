@@ -3,10 +3,10 @@ import * as env from 'env-var';
 export const GRAPH_TEMPLATE = env
   .get('GRAPH_TEMPLATE')
   .example(
-    'http://mu.semte.ch/graphs/organizations/~ORGANIZATION_ID~/LoketLB-toezichtGebruiker',
+    'http://mu.semte.ch/graphs/organizations/~ORGANIZATION_ID~/LoketLB-berichtenGebruiker',
   )
   .default(
-    'http://mu.semte.ch/graphs/organizations/~ORGANIZATION_ID~/LoketLB-toezichtGebruiker',
+    'http://mu.semte.ch/graphs/organizations/~ORGANIZATION_ID~/LoketLB-berichtenGebruiker',
   )
   .asUrlString();
 

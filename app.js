@@ -1,7 +1,6 @@
 import { app, errorHandler } from 'mu';
 import {
   verifyKeyAndOrganisation,
-  storeSubmission,
   isSubmitted,
   sendErrorAlert,
   cleanseRequestBody,
@@ -10,7 +9,6 @@ import bodyParser from 'body-parser';
 import * as jsonld from 'jsonld';
 import {
   enrichBodyForRegister,
-  enrichBodyForStatus,
   extractInfoFromTriplesForRegister,
   extractAuthentication,
   validateExtractedInfo,
@@ -21,11 +19,11 @@ import {
   getTaskInfoFromRemoteDataObject,
   downloadTaskUpdate,
 } from './downloadTaskManagement';
-import { getSubmissionStatusRdfJS } from './jobAndTaskManagement';
 import { Lock } from 'async-await-mutex-lock';
 import * as N3 from 'n3';
 const { namedNode } = N3.DataFactory;
 import rateLimit from 'express-rate-limit';
+import { scheduleJob } from './tasks/schedule-new-job';
 
 app.use(errorHandler);
 // support both jsonld and json content-type
@@ -40,7 +38,6 @@ app.post('/melding', async function (req, res) {
     const enrichedBody = await enrichBodyForRegister(req.body);
     // extracted the minimal required triples
     const store = await jsonLdToStore(enrichedBody);
-    //const triples = await jsonld.default.toRDF(enrichedBody, {});
 
     const extracted = extractInfoFromTriplesForRegister(store);
 
@@ -48,9 +45,8 @@ app.post('/melding', async function (req, res) {
     ensureMinimalRegisterPayload(extracted);
 
     // check if the extracted properties are valid
+    //TODO: what can we validate?
     ensureValidRegisterProperties(extracted);
-
-    const { submittedResource, authenticationConfiguration } = extracted;
 
     // authenticate vendor
     const organisationID = await ensureAuthorisation(store);
@@ -61,17 +57,17 @@ app.post('/melding', async function (req, res) {
     );
 
     // check if the resource has already been submitted
-    await ensureNotSubmitted(submittedResource, submissionGraph);
+    await ensureNotSubmitted(extracted.submittedResource, submissionGraph);
 
     // process the new auto-submission
-    const { submissionUri, jobUri } = await storeSubmission(
+    const { submissionUri, jobUri } = await scheduleJob(
       store,
-      submissionGraph,
-      authenticationConfiguration,
+      { ...extracted, submissionGraph }
     );
+
     res
       .status(201)
-      .send({ uri: submissionUri, submission: submissionUri, job: jobUri })
+      .send({ submission: submissionUri, job: jobUri })
       .end();
   } catch (e) {
     console.error(e.message);
@@ -86,7 +82,7 @@ app.post('/melding', async function (req, res) {
       );
       sendErrorAlert({
         message:
-          'Something unexpected went wrong while processing an auto-submission request.',
+          'Something unexpected went wrong while processing an BerichtenCentrum API request.',
         detail,
         reference: e.reference,
       });
@@ -95,7 +91,7 @@ app.post('/melding', async function (req, res) {
       .status(e.errorCode || 500)
       .send(
         e.errorBody ||
-          `An error happened while processing the auto-submission request. If this keeps occurring for no good reason, please contact us at digitaalABB@vlaanderen.be. Please consult the technical error below.\n${e.message}`,
+          `An error happened while processing the BerichtenCentrum API request. If this keeps occurring for no good reason, please contact us at digitaalABB@vlaanderen.be. Please consult the technical error below.\n${e.message}`,
       )
       .end();
   }
@@ -172,15 +168,14 @@ const statusLimiter = rateLimit({
     'There have been too many requests about this submission. The amount of status requests is limited to 5 per minute. Try again later.',
   keyGenerator: async (req) => {
     await ensureValidContentType(req.get('content-type'));
-    const enrichedBody = await enrichBodyForStatus(req.body);
-    const store = await jsonLdToStore(enrichedBody);
+    const store = await jsonLdToStore(req.body);
     const submissionUris = store.getObjects(
       undefined,
       namedNode('http://purl.org/dc/terms/subject'),
     );
     const submissionUri = submissionUris[0]?.value;
     return submissionUri || '';
-  },
+  }
 });
 
 
@@ -212,7 +207,7 @@ function ensureValidDataType(body) {
 
 function ensureMinimalRegisterPayload(object) {
   for (const prop in object)
-    if (!object[prop] && prop != 'authenticationConfiguration') {
+    if (!object[prop]) {
       const err = new Error(
         `Invalid JSON-LD payload: property "${prop}" is missing or invalid.`,
       );
@@ -288,11 +283,4 @@ async function jsonLdToStore(jsonLdObject) {
   const store = new N3.Store();
   store.addQuads(requestQuads);
   return store;
-}
-
-async function storeToJsonLd(store, context, frame) {
-  const jsonld1 = await jsonld.default.fromRDF([...store], {});
-  const framed = await jsonld.default.frame(jsonld1, frame);
-  const compacted = await jsonld.default.compact(framed, context);
-  return compacted;
 }
