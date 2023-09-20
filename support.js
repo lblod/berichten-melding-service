@@ -6,9 +6,7 @@ import {
   sparqlEscapeUri,
 } from 'mu';
 import * as env from './env';
-import * as jobsAndTasks from './jobAndTaskManagement';
 import * as N3 from 'n3';
-const { namedNode } = N3.DataFactory;
 
 export async function isSubmitted(resource, submissionGraph) {
   const result = await query(`
@@ -20,38 +18,6 @@ export async function isSubmitted(resource, submissionGraph) {
       }
     `);
   return parseInt(result.results.bindings[0].count.value) > 0;
-}
-
-export function extractSubmissionUrl(store) {
-  const submissionUrls = store.getSubjects(
-    namedNode('http://www.w3.org/1999/02/22-rdf-syntax-ns#type'),
-    namedNode('http://rdf.myexperiment.org/ontologies/base/Submission'),
-  );
-  return submissionUrls[0]?.value;
-}
-
-export function findSubmittedResource(store) {
-  const submittedResources = store.getObjects(
-    undefined,
-    namedNode('http://purl.org/dc/terms/subject'),
-  );
-  return submittedResources[0]?.value;
-}
-
-export function extractLocationUrl(store) {
-  const locations = store.getObjects(
-    undefined,
-    namedNode('http://www.w3.org/ns/prov#atLocation'),
-  );
-  return locations[0]?.value;
-}
-
-export function extractMeldingUri(store) {
-  const submissionUris = store.getSubjects(
-    undefined,
-    namedNode('http://rdf.myexperiment.org/ontologies/base/Submission'),
-  );
-  return submissionUris[0]?.value;
 }
 
 /*
@@ -173,7 +139,7 @@ export async function sendErrorAlert({ message, detail, reference }) {
         ${sparqlEscapeUri(uri)}
           a oslc:Error ;
           mu:uuid ${sparqlEscapeString(id)} ;
-          dct:subject ${sparqlEscapeString('Automatic Submission Service')} ;
+          dct:subject ${sparqlEscapeString('Berichten Melding Service')} ;
           oslc:message ${sparqlEscapeString(message)} ;
           dct:created ${sparqlEscapeDateTime(new Date().toISOString())} ;
           dct:creator ${sparqlEscapeUri(env.CREATOR)} .
