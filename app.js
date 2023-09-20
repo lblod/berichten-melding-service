@@ -22,8 +22,8 @@ import {
 import { Lock } from 'async-await-mutex-lock';
 import * as N3 from 'n3';
 const { namedNode } = N3.DataFactory;
-import rateLimit from 'express-rate-limit';
-import { scheduleJob } from './tasks/schedule-new-job';
+import { scheduleJob } from './tasks/register-task';
+import { dispatchOnDelta } from './tasks/controller';
 
 app.use(errorHandler);
 // support both jsonld and json content-type
@@ -99,59 +99,24 @@ app.post('/melding', async function (req, res) {
 
 const lock = new Lock();
 
-app.post('/download-status-update', async function (req, res) {
+app.post('/delta', async function (req, res) {
   //The locking is needed because the delta-notifier sends the same request twice to this API because a status update is both deleted and inserted. We don't want this; we can't change that for now, so we block such that no 2 requests are handled at the same time and then limit the way status changes can be performed.
   await lock.acquire();
   try {
-    //Because the delta-notifier is lazy/incompetent we need a lot more filtering before we actually know that a resource's status has been set to ongoing
-    const actualStatusChange = req.body
-      .map((changeset) => changeset.inserts)
-      .filter((inserts) => inserts.length > 0)
-      .flat()
-      .filter((insert) => insert.predicate.value === env.ADMS_STATUS_PREDICATE)
-      .filter(
-        (insert) =>
-          insert.object.value === env.DOWNLOAD_STATUSES.ongoing ||
-          insert.object.value === env.DOWNLOAD_STATUSES.success ||
-          insert.object.value === env.DOWNLOAD_STATUSES.failure,
-      );
-    for (const remoteDataObjectTriple of actualStatusChange) {
-      const {
-        downloadTaskUri,
-        jobUri,
-        oldStatus,
-        submissionGraph,
-        fileUri,
-        errorMsg,
-      } = await getTaskInfoFromRemoteDataObject(
-        remoteDataObjectTriple.subject.value,
-      );
-      //Update the status also passing the old status to not make any illegal updates
-      if (jobUri)
-        await downloadTaskUpdate(
-          submissionGraph,
-          downloadTaskUri,
-          jobUri,
-          oldStatus,
-          remoteDataObjectTriple.object.value,
-          remoteDataObjectTriple.subject.value,
-          fileUri,
-          errorMsg,
-        );
-    }
+    await dispatchOnDelta(req);
     res.status(200).send().end();
   } catch (e) {
     console.error(e.message);
     if (!e.alreadyStoredError)
       sendErrorAlert({
-        message: 'Could not process a download status update',
+        message: 'Could not process a delta status update',
         detail: JSON.stringify({ error: e.message }),
       });
     res.status(500).json({
       errors: [
         {
           title:
-            'An error occured while updating the status of a downloaded file',
+            'An error occured while updating a delta information',
           error: JSON.stringify(e),
         },
       ],
@@ -160,24 +125,6 @@ app.post('/download-status-update', async function (req, res) {
     lock.release();
   }
 });
-
-const statusLimiter = rateLimit({
-  windowMs: 60000,
-  max: 5,
-  message:
-    'There have been too many requests about this submission. The amount of status requests is limited to 5 per minute. Try again later.',
-  keyGenerator: async (req) => {
-    await ensureValidContentType(req.get('content-type'));
-    const store = await jsonLdToStore(req.body);
-    const submissionUris = store.getObjects(
-      undefined,
-      namedNode('http://purl.org/dc/terms/subject'),
-    );
-    const submissionUri = submissionUris[0]?.value;
-    return submissionUri || '';
-  }
-});
-
 
 ///////////////////////////////////////////////////////////////////////////////
 // Helpers
