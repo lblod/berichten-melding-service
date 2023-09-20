@@ -1,5 +1,6 @@
 import { querySudo as query, updateSudo as update } from '@lblod/mu-auth-sudo';
 import * as env from '../env';
+import { updateStatus } from '../lib/task-utils';
 
 import {
   uuid,
@@ -82,7 +83,7 @@ export async function scheduleJob(store,
             adms:status js:busy ;
             dct:created ${nowSparql} ;
             dct:modified ${nowSparql} ;
-            task:operation tasko:register ;
+            task:operation tasko:register-bericht ;
             dct:creator ${sparqlEscapeUri(env.CREATOR)} ;
             task:index "0" ;
             dct:isPartOf ${sparqlEscapeUri(jobUri)} .
@@ -105,7 +106,7 @@ export async function scheduleJob(store,
           dct:subject ${sparqlEscapeUri(submittedResource)};
           dgftSec:securityConfiguration ${sparqlEscapeUri(authenticationConfiguration)}.
 
-       asj:${submissionTaskUuid} task:inputContainer ${sparqlEscapeUri(containerUri)}.
+        ${sparqlEscapeUri(submissionTaskUri)} task:inputContainer ${sparqlEscapeUri(containerUri)}.
      }
     }
     `;
@@ -303,4 +304,34 @@ async function attachClonedAuthenticationConfiguraton(
 
   return { newAuthConf, newConf, newCreds };
 
+}
+
+export async function updateTask(job, task, downloadStatus) {
+  if(downloadStatus == env.DOWNLOAD_STATUSES.failure) {
+    const errorMessage = `Failed download register for task ${task}`;
+    // TODO: create and link an error to job, but job-controller is currently broken
+    await updateStatus(task, env.TASK_STATUSES.failed);
+    throw new Error(errorMessage);
+  }
+  else if(downloadStatus == env.DOWNLOAD_STATUSES.success) {
+    const updateResultsContainer = `
+      ${env.PREFIXES}
+      INSERT {
+        GRAPH ?g {
+          ?task task:resultsContainer ?resultsContainer.
+        }
+      }
+      WHERE {
+        GRAPH ?g {
+          VALUES ?task {
+            ${sparqlEscapeUri(task)}
+          }
+          ?task a task:Task;
+             task:inputContainer ?resultsContainer.
+        }
+      }
+    `;
+    await update(updateResultsContainer);
+    await updateStatus(task, env.TASK_STATUSES.success);
+  }
 }
