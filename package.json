@@ -3,6 +3,10 @@
   "version": "0.1.0",
   "description": "Microservice providing an API for external parties to process berichten.",
   "dependencies": {
+    "fs-extra": "8.1.0",
+    "@lblod/marawa": "^0.7.1",
+    "jsdom": "^11.6.2",
+    "lodash": "^4.17.11",
     "@lblod/mu-auth-sudo": "^0.6.0",
     "async-await-mutex-lock": "^1.0.9",
     "express-rate-limit": "^6.6.0",
