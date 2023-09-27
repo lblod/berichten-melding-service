@@ -14,15 +14,11 @@ export async function dispatchOnDelta(req) {
   const remoteDataInfo = getRemoteDataObjectInfoDelta(req);
   if(remoteDataInfo.length) {
     await processOnDownloadEvent(remoteDataInfo);
-    return;
   }
   const taskDataInfo = getTaskInfoDelta(req);
   if(taskDataInfo.length) {
     await processOnTaskUpdateEvent(taskDataInfo);
-    return;
   }
-  return;
-
 }
 
 async function processOnDownloadEvent(remoteDataInfo) {
