@@ -7,7 +7,7 @@ import {
 import { querySudo as query } from '@lblod/mu-auth-sudo';
 import * as env from '../env';
 import { parseResult } from '../support';
-import { updateTask  as updateRegisterTask } from './register-task';
+import { updateTaskOndownloadEvent  as updateRegisterTaskOnDownloadEvent } from './register-task';
 import {startTask as startImportTask } from './import-task';
 
 export async function dispatchOnDelta(req) {
@@ -36,7 +36,7 @@ async function processOnDownloadEvent(remoteDataInfo) {
         return;
       }
       if(operation == 'http://lblod.data.gift/id/jobs/concept/TaskOperation/register-bericht') {
-        await updateRegisterTask(job, task, downloadStatus);
+        await updateRegisterTaskOnDownloadEvent(job, task, downloadStatus);
       }
       else if(operation == 'http://lblod.data.gift/id/jobs/concept/TaskOperation/import-bericht') {
         //TODO

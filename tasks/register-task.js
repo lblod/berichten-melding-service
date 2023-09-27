@@ -306,7 +306,7 @@ async function attachClonedAuthenticationConfiguraton(
 
 }
 
-export async function updateTask(job, task, downloadStatus) {
+export async function updateTaskOndownloadEvent(job, task, downloadStatus) {
   if(downloadStatus == env.DOWNLOAD_STATUSES.failure) {
     const errorMessage = `Failed download register for task ${task}`;
     // TODO: create and link an error to job, but job-controller is currently broken
