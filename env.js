@@ -37,6 +37,8 @@ export const OAUTH2 =
   'https://www.w3.org/2019/wot/security#OAuth2SecurityScheme';
 export const CREATOR =
   'http://lblod.data.gift/services/berichten-melding-service';
+export const ABB_URI =
+  'http://data.lblod.info/id/bestuurseenheden/141d9d6b-54af-4d17-b313-8d1c30bc3f5b';
 
 export const PREFIX_TABLE = {
   meb: 'http://rdf.myexperiment.org/ontologies/base/',
@@ -73,6 +75,7 @@ export const PREFIX_TABLE = {
   tasko: 'http://lblod.data.gift/id/jobs/concept/TaskOperation/',
   jobo: 'http://lblod.data.gift/id/jobs/concept/JobOperation/',
   hrvst: 'http://lblod.data.gift/vocabularies/harvesting/',
+  schema: 'http://schema.org/',
 };
 
 export const PREFIXES = (() => {
