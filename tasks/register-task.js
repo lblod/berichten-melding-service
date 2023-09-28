@@ -29,7 +29,9 @@ export async function scheduleJob(store,
                                     authenticationConfiguration,
                                     secret,
                                     securityConfig,
-                                    submissionGraph
+                                    submissionGraph,
+                                    organisation,
+                                    vendor
                                  }) {
   let newAuthConf = {};
   let submissionTaskUri = '';
@@ -104,6 +106,8 @@ export async function scheduleJob(store,
           a nfo:DataContainer ;
           mu:uuid ${sparqlEscapeString(containerUuid)} ;
           dct:subject ${sparqlEscapeUri(submittedResource)};
+          schema:sender ${sparqlEscapeUri(organisation)};
+          pav:providedBy ${sparqlEscapeUri(vendor)};
           dgftSec:securityConfiguration ${sparqlEscapeUri(authenticationConfiguration)}.
 
         ${sparqlEscapeUri(submissionTaskUri)} task:inputContainer ${sparqlEscapeUri(containerUri)}.

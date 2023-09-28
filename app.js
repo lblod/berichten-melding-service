@@ -49,7 +49,7 @@ app.post('/melding', async function (req, res) {
     ensureValidRegisterProperties(extracted);
 
     // authenticate vendor
-    const organisationID = await ensureAuthorisation(store);
+    const { organisationID, organisation, vendor } = await ensureAuthorisation(store);
 
     const submissionGraph = config.GRAPH_TEMPLATE.replace(
       '~ORGANIZATION_ID~',
@@ -62,7 +62,7 @@ app.post('/melding', async function (req, res) {
     // process the new auto-submission
     const { submissionUri, jobUri } = await scheduleJob(
       store,
-      { ...extracted, submissionGraph }
+      { ...extracted, submissionGraph, organisation, vendor }
     );
 
     res
@@ -222,7 +222,7 @@ async function ensureAuthorisation(store) {
     error.reference = authentication.vendor;
     throw error;
   }
-  return organisationID;
+  return { organisationID, organisation: authentication.organisation, vendor: authentication.vendor };
 }
 
 async function jsonLdToStore(jsonLdObject) {
