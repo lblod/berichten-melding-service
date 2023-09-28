@@ -32,7 +32,7 @@ async function processOnDownloadEvent(remoteDataInfo) {
 
       if(taskStatus !== env.TASK_STATUSES.busy) {
         // Many possible causes for this state, e.g multiple graphs, issue with docker network etc.
-        console.warn(`The associated task status is already in a final state, probably an too eager delta-notification`);
+        console.warn(`The associated task status is already in a final state, probably a too eager delta-notification`);
         return;
       }
       if(operation == 'http://lblod.data.gift/id/jobs/concept/TaskOperation/register-bericht') {
@@ -52,7 +52,7 @@ async function processOnTaskUpdateEvent(taskDeltaData) {
     if(taskInfo) {
       // We ensure we don't work with obsolete state
       if(taskInfo.taskStatus !== env.TASK_STATUSES.scheduled) {
-        console.warn(`The associated task status is already in a not scheduled state, probably an too eager delta-notification`);
+        console.warn(`The associated task status is already in a not scheduled state, probably a too eager delta-notification`);
         return;
       }
       if(taskInfo.operation == 'http://lblod.data.gift/id/jobs/concept/TaskOperation/import-bericht') {
