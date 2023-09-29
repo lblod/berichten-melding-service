@@ -67,7 +67,6 @@ export async function updateTaskOndownloadEvent(job,
     }
   }
   //clean up on general fail
-  // extract to file
   // error sit flow
   // kalliope creates conversation flow
 }
