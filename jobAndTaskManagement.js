@@ -11,7 +11,7 @@ import { SparqlJsonParser } from 'sparqljson-parse';
 import * as N3 from 'n3';
 const { quad } = N3.DataFactory;
 
-export async function startJob(submissionGraph, jobUri, berichtUri) {
+export async function startJob(submissionGraph) {
   try {
     const jobUuid = uuid();
     const nowSparql = sparqlEscapeDateTime(new Date().toISOString());

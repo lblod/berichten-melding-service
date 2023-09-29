@@ -1,17 +1,10 @@
-import {
-  uuid,
-  sparqlEscapeString,
-  sparqlEscapeDateTime,
-  sparqlEscapeUri,
-} from 'mu';
-import { querySudo as query, updateSudo as update } from '@lblod/mu-auth-sudo';
+import { sparqlEscapeUri } from 'mu';
+import { querySudo as query } from '@lblod/mu-auth-sudo';
 import fs from 'fs-extra';
 import { updateStatus } from '../lib/task-utils';
 import { parseResult } from '../support';
 import * as env from '../env';
 import RdfaExtractor from '../lib/rdfa-extractor';
-import Triple from '../lib/triple';
-import { attachClonedAuthenticationConfiguraton } from '../lib/download-file-helpers';
 import { validate } from './helpers/import-task-validation-helpers';
 import { extractEntities, enrich }  from './helpers/import-task-extracting-helpers';
 import { scheduleAttachments }  from './helpers/import-task-schedule-attachement-helpers';
@@ -76,7 +69,7 @@ async function publishMessage(taskUri) {
   if(!data) {
     throw new Error('Unexpected error while publishing message: no data found');
   }
-  const { pFile, url, messageUri, organisationUri, vendorUri, jobUri } = data;
+  const { pFile, url, messageUri } = data;
   const html = await loadFileData(pFile);
   const rdfaExtractor = new RdfaExtractor(html, url);
   rdfaExtractor.parse();

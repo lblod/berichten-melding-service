@@ -13,15 +13,9 @@ import {
   extractAuthentication,
   validateExtractedInfo,
 } from './jsonld-input';
-import * as env from './env';
 import * as config from './config';
-import {
-  getTaskInfoFromRemoteDataObject,
-  downloadTaskUpdate,
-} from './downloadTaskManagement';
 import { Lock } from 'async-await-mutex-lock';
 import * as N3 from 'n3';
-const { namedNode } = N3.DataFactory;
 import { scheduleJob } from './tasks/register-task';
 import { dispatchOnDelta } from './tasks/controller';
 

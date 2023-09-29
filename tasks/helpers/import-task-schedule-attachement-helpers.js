@@ -65,7 +65,7 @@ export async function scheduleAttachments( { jobUri, taskUri, attachments } ) {
           .map(t => t.toNT())
           .join('\n');
 
-    const newAuthConf = await attachClonedAuthenticationConfiguraton(
+    await attachClonedAuthenticationConfiguraton(
       remoteDataUri,
       jobUri
     );

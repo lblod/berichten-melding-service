@@ -1,9 +1,4 @@
-import {
-  uuid,
-  sparqlEscapeString,
-  sparqlEscapeDateTime,
-  sparqlEscapeUri,
-} from 'mu';
+import { sparqlEscapeUri } from 'mu';
 import { querySudo as query } from '@lblod/mu-auth-sudo';
 import * as env from '../env';
 import { parseResult } from '../support';

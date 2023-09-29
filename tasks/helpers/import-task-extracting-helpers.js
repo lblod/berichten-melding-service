@@ -42,7 +42,7 @@ export function extractEntities(triples, messageUri) {
   return { message, attachments, conversations };
 }
 
-export function enrich({ message, attachments, rdfaExtractor }) {
+export function enrich({ message, rdfaExtractor }) {
   const messageUri = message[0].subject;
 
   // The text is extract as plain text. Most rdfa Extractors do this

@@ -97,8 +97,7 @@ export function extractAuthentication(store) {
   };
 }
 
-export function validateExtractedInfo(extracted) {
-  const { status } = extracted;
+export function validateExtractedInfo() {
   const errors = [];
   console.warn(`TODO: validation function called but is a void function`);
   return { isValid: errors.length === 0, errors };

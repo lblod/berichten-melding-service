@@ -1,4 +1,4 @@
-import { querySudo as query, updateSudo as update } from '@lblod/mu-auth-sudo';
+import { updateSudo as update } from '@lblod/mu-auth-sudo';
 import * as env from '../env';
 import { updateStatus } from '../lib/task-utils';
 import { attachClonedAuthenticationConfiguraton } from '../lib/download-file-helpers';
@@ -12,16 +12,11 @@ import {
 
 import {
   storeToTurtle,
-  parseResult,
   sendErrorAlert,
   cleanCredentials
 } from '../support';
 
 import * as jobsAndTasks from '../jobAndTaskManagement';
-
-import {
-  extractInfoFromTriplesForRegister
-} from '../jsonld-input';
 
 export async function scheduleJob(store,
                                   {

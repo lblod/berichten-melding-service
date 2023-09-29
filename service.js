@@ -1,11 +1,8 @@
 import * as mas from '@lblod/mu-auth-sudo';
 import * as mu from 'mu';
 import * as env from './env';
-import { querySudo as query, updateSudo as update } from '@lblod/mu-auth-sudo';
+import { updateSudo as update } from '@lblod/mu-auth-sudo';
 import {
-  uuid,
-  sparqlEscapeString,
-  sparqlEscapeDateTime,
   sparqlEscapeUri,
 } from 'mu';
 

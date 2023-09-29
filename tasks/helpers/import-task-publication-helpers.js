@@ -5,7 +5,7 @@ import {
   sparqlEscapeUri,
   sparqlEscapeInt,
 } from 'mu';
-import { querySudo as query, updateSudo as update } from '@lblod/mu-auth-sudo';
+import { updateSudo as update } from '@lblod/mu-auth-sudo';
 import fs from 'fs-extra';
 import * as env from '../../env';
 
