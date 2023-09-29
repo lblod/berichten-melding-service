@@ -169,27 +169,12 @@ export async function scheduleJob(store,
         }
       }
     `;
-
     await update(remoteDataObjectQuery);
 
     return { submittedResource, jobUri };
   }
   catch (e) {
-    const generalMessage = `Something went wrong during the storage of submission ${submittedResource}. This is monitored via job ${jobUri}.`;
-    console.error(generalMessage);
-    console.error(e.message);
-    console.info('Cleaning credentials');
-    const errorUri = await sendErrorAlert({
-      message: generalMessage,
-      detail: e.message,
-    });
-    await jobsAndTasks.failTask(
-      submissionGraph,
-      submissionTaskUri,
-      jobUri,
-      errorUri,
-    );
-    e.alreadyStoredError = true;
+    await updateStatus(submissionTaskUri, env.TASK_STATUSES.failed);
     if (authenticationConfiguration)
       await cleanCredentials(authenticationConfiguration);
     if (newAuthConf?.newAuthConf) {

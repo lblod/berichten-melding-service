@@ -63,29 +63,36 @@ app.post('/melding', async function (req, res) {
       .status(201)
       .send({ submission: submissionUri, job: jobUri })
       .end();
-  } catch (e) {
-    console.error(e.message);
-    if (!e.alreadyStoredError) {
-      const detail = JSON.stringify(
-        {
-          err: e.message,
-          req: cleanseRequestBody(req.body),
-        },
-        undefined,
-        2,
-      );
-      sendErrorAlert({
-        message:
-          'Something unexpected went wrong while processing an BerichtenCentrum API request.',
-        detail,
-        reference: e.reference,
-      });
-    }
+  }
+  catch (e) {
+    const errorDetails = e.message || e;
+
+    console.error(errorDetails);
+
+    const detail = JSON.stringify(
+      {
+        err: errorDetails,
+        req: cleanseRequestBody(req.body),
+      },
+      undefined,
+      2,
+    );
+
+    sendErrorAlert({
+      message:
+        'Something unexpected went wrong while processing an BerichtenCentrum API request.',
+      detail,
+      reference: e.reference,
+    });
+
     res
       .status(e.errorCode || 500)
       .send(
         e.errorBody ||
-          `An error happened while processing the BerichtenCentrum API request. If this keeps occurring for no good reason, please contact us at digitaalABB@vlaanderen.be. Please consult the technical error below.\n${e.message}`,
+          `An error happened while processing the BerichtenCentrum API request.
+           If this keeps occurring for no good reason,
+            please contact us at digitaalABB@vlaanderen.be.
+          Please consult the technical error below.\n${errorDetails}`,
       )
       .end();
   }
@@ -94,7 +101,8 @@ app.post('/melding', async function (req, res) {
 const lock = new Lock();
 
 app.post('/delta', async function (req, res) {
-  //The locking is needed because the delta-notifier sends the same request twice to this API because a status update is both deleted and inserted. We don't want this; we can't change that for now, so we block such that no 2 requests are handled at the same time and then limit the way status changes can be performed.
+  // We use locking mechanism as a queue-ing system.
+  // TODO: is this true? What happens with incoming requests during processing, bounced? or scheduled?
   await lock.acquire();
   try {
     await dispatchOnDelta(req);
