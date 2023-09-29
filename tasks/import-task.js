@@ -15,7 +15,10 @@ import { attachClonedAuthenticationConfiguraton } from '../lib/download-file-hel
 import { validate } from './helpers/import-task-validation-helpers';
 import { extractEntities, enrich }  from './helpers/import-task-extracting-helpers';
 import { scheduleAttachments }  from './helpers/import-task-schedule-attachement-helpers';
-import { updateMetaDataAttachment, updateBerichtAndMessage } from './helpers/import-task-publication-helpers';
+import { updateMetaDataAttachment,
+         updateBerichtAndMessage,
+         saveMessageAsAttachment
+       } from './helpers/import-task-publication-helpers';
 
 export async function startTask(taskUri) {
   //lock first
@@ -81,6 +84,7 @@ async function publishMessage(taskUri) {
   const { message, attachments, conversations } =
         extractEntities(rdfaExtractor.triples, messageUri);
   enrich({ message, attachments, conversations, rdfaExtractor });
+  await saveMessageAsAttachment({ taskUri, messageUri, message });
   await updateMetaDataAttachment(attachments);
   await updateBerichtAndMessage({ taskUri, messageUri, message, conversations });
 

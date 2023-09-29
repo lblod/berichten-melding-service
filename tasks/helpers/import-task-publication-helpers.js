@@ -3,10 +3,79 @@ import {
   sparqlEscapeString,
   sparqlEscapeDateTime,
   sparqlEscapeUri,
+  sparqlEscapeInt,
 } from 'mu';
 import { querySudo as query, updateSudo as update } from '@lblod/mu-auth-sudo';
 import fs from 'fs-extra';
 import * as env from '../../env';
+
+export async function saveMessageAsAttachment({ taskUri, messageUri, message }) {
+  // For legacy reasons, the orinal message should be saved as attachment in loket to be displayed in loket AND kalliope
+  let msgContent = message.find(t => t.predicate == 'http://schema.org/text').object;
+  msgContent = `
+   <!DOCTYPE html>
+   <html lang="en">
+     <head>
+      <meta charset="UTF-8">
+      <title>Origineel Bericht</title>
+     </head>
+     <body>
+       ${msgContent}
+    </body>
+  </html>
+  `;
+
+  const lFileUuid = uuid();
+  const lFileUri = `http://data.lblod.info/file/id/${lFileUuid}`;
+  const pFileUuid = uuid();
+  const pFileUri = `share://${pFileUuid}.html`;
+  const pFilePath = `/share/${pFileUuid}.html`;
+
+  const nowSparql = sparqlEscapeDateTime(new Date().toISOString());
+
+  await fs.writeFile(pFilePath, msgContent);
+  const stats = await fs.stat(pFilePath);
+
+  const updateMsgQuery = `
+    ${env.PREFIXES}
+
+     INSERT {
+       GRAPH ?g {
+        ${sparqlEscapeUri(lFileUri)}
+          rdf:type nfo:FileDataObject ;
+          dct:created ${nowSparql} ;
+          dct:modified ${nowSparql} ;
+          mu:uuid ${sparqlEscapeString(lFileUuid)} ;
+          dct:creator ${sparqlEscapeUri(env.CREATOR)} ;
+          nfo:fileName "origineel-bericht.html";
+          nfo:fileSize ${sparqlEscapeInt(stats.size)};
+          dbpedia:fileExtension ${sparqlEscapeString(".html")};
+          dct:format ${sparqlEscapeString("text/html")}.
+
+        ${sparqlEscapeUri(pFileUri)}
+          rdf:type nfo:FileDataObject, nfo:LocalFileDataObject;
+          dct:created ${nowSparql} ;
+          dct:modified ${nowSparql} ;
+          mu:uuid ${sparqlEscapeString(pFileUuid)} ;
+          dct:creator ${sparqlEscapeUri(env.CREATOR)} ;
+          nfo:fileName "origineel-bericht.html";
+          nfo:fileSize ${sparqlEscapeInt(stats.size)};
+          dbpedia:fileExtension ${sparqlEscapeString(".html")};
+          dct:format ${sparqlEscapeString("text/html")};
+          nie:dataSource ${sparqlEscapeUri(lFileUri)}.
+
+         ${sparqlEscapeUri(messageUri)} nie:hasPart ${sparqlEscapeUri(lFileUri)}.
+         ${sparqlEscapeUri(lFileUri)} skos:note "orginal-message-as-attachment-for-legacy".
+       }
+     }
+     WHERE {
+       GRAPH ?g {
+        ${sparqlEscapeUri(taskUri)} a task:Task.
+       }
+     }`;
+
+  await update(updateMsgQuery);
+}
 
 export async function updateMetaDataAttachment(attachments) {
   // adds some file meta-data to the logical file deduced from the physical file
@@ -30,6 +99,7 @@ export async function updateMetaDataAttachment(attachments) {
      VALUES ?predicateForUpdate {
        nfo:fileSize
        dbpedia:fileExtension
+       dct:format
      }
 
      GRAPH ?g {
