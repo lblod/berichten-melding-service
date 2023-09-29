@@ -8,7 +8,8 @@ import { querySudo as query } from '@lblod/mu-auth-sudo';
 import * as env from '../env';
 import { parseResult } from '../support';
 import { updateTaskOndownloadEvent  as updateRegisterTaskOnDownloadEvent } from './register-task';
-import {startTask as startImportTask } from './import-task';
+import { startTask as startImportTask } from './import-task';
+import { updateTaskOndownloadEvent as updateImportTaskOnDownloadEvent } from './import-task';
 
 export async function dispatchOnDelta(req) {
   const remoteDataInfo = getRemoteDataObjectInfoDelta(req);
@@ -28,7 +29,7 @@ async function processOnDownloadEvent(remoteDataInfo) {
       remoteDataObjectTriple.subject.value
     );
     if(result) {
-      const { job, task, taskStatus, operation } = result;
+      const { job, task, taskStatus, operation, collection } = result;
 
       if(taskStatus !== env.TASK_STATUSES.busy) {
         // Many possible causes for this state, e.g multiple graphs, issue with docker network etc.
@@ -39,7 +40,12 @@ async function processOnDownloadEvent(remoteDataInfo) {
         await updateRegisterTaskOnDownloadEvent(job, task, downloadStatus);
       }
       else if(operation == 'http://lblod.data.gift/id/jobs/concept/TaskOperation/import-bericht') {
-        //TODO
+        await updateImportTaskOnDownloadEvent(job,
+                                              task,
+                                              downloadStatus,
+                                              remoteDataObjectTriple.subject.value,
+                                              collection
+                                             );
       }
     }
   }
@@ -94,7 +100,7 @@ async function getTaskInfoFromRemoteDataObject(remoteDataObjectUri) {
   const remoteDataObjectUriSparql = sparqlEscapeUri(remoteDataObjectUri);
   const taskQuery = `
     ${env.PREFIXES}
-    SELECT DISTINCT ?task ?taskStatus ?job ?operation WHERE {
+    SELECT DISTINCT ?task ?taskStatus ?job ?operation ?collection WHERE {
       ?collection dct:hasPart ${remoteDataObjectUriSparql}.
       ?container task:hasHarvestingCollection ?collection.
       ?task a task:Task;

@@ -1,6 +1,7 @@
 import { querySudo as query, updateSudo as update } from '@lblod/mu-auth-sudo';
 import * as env from '../env';
 import { updateStatus } from '../lib/task-utils';
+import { attachClonedAuthenticationConfiguraton } from '../lib/download-file-helpers';
 
 import {
   uuid,
@@ -107,8 +108,7 @@ export async function scheduleJob(store,
           mu:uuid ${sparqlEscapeString(containerUuid)} ;
           dct:subject ${sparqlEscapeUri(submittedResource)};
           schema:sender ${sparqlEscapeUri(organisation)};
-          pav:providedBy ${sparqlEscapeUri(vendor)};
-          dgftSec:securityConfiguration ${sparqlEscapeUri(authenticationConfiguration)}.
+          pav:providedBy ${sparqlEscapeUri(vendor)}.
 
         ${sparqlEscapeUri(submissionTaskUri)} task:inputContainer ${sparqlEscapeUri(containerUri)}.
      }
@@ -139,18 +139,11 @@ export async function scheduleJob(store,
     const remoteDataId = uuid();
     const remoteDataUri = `http://data.lblod.info/id/remote-data-objects/${remoteDataId}`;
 
-    // We need to attach a cloned version of the authentication data, because:
-    // 1. downloadUrl will delete credentials after final state
-    // 2. in a later phase, when attachments are fetched, these need to be reused.
-    // -> If not cloned, the credentials might not be availible for the download of the attachments
-    // Alternative: not delete the credentials after download, but the not always clear when exaclty query may be deleted.
-    // E.g. after import-submission we're quite sure. But what if something goes wrong before that, or a download just takes longer.
-    // The highly aync process makes it complicated
-    // Note: probably some clean up background job might be needed. Needs perhaps a bit of better thinking
+
+    //See documention of function for reasoning
     newAuthConf = await attachClonedAuthenticationConfiguraton(
       remoteDataUri,
-      jobUri,
-      submissionGraph,
+      jobUri
     );
 
     const remoteDataObjectQuery = `
@@ -209,105 +202,6 @@ export async function scheduleJob(store,
     }
     throw e;
   }
-}
-
-async function attachClonedAuthenticationConfiguraton(
-  remoteDataObjectUri,
-  jobUri,
-  submissionGraph,
-) {
-  const getInfoQuery = `
-    ${env.PREFIXES}
-    SELECT DISTINCT ?graph ?secType ?authenticationConfiguration WHERE {
-      GRAPH ${sparqlEscapeUri(submissionGraph)} {
-        ${sparqlEscapeUri(jobUri)}
-          dgftSec:targetAuthenticationConfiguration
-            ?authenticationConfiguration.
-        ?authenticationConfiguration
-          dgftSec:securityConfiguration/rdf:type ?secType .
-      }
-    }
-  `;
-
-  const authData = parseResult(await query(getInfoQuery))[0];
-  const newAuthConf = `http://data.lblod.info/authentications/${uuid()}`;
-  const newConf = `http://data.lblod.info/configurations/${uuid()}`;
-  const newCreds = `http://data.lblod.info/credentials/${uuid()}`;
-
-  let cloneQuery = '';
-
-  if (!authData) {
-    return undefined;
-  } else if (authData.secType === env.BASIC_AUTH) {
-    cloneQuery = `
-      ${env.PREFIXES}
-      INSERT {
-        GRAPH ${sparqlEscapeUri(submissionGraph)} {
-          ${sparqlEscapeUri(remoteDataObjectUri)}
-            dgftSec:targetAuthenticationConfiguration
-              ${sparqlEscapeUri(newAuthConf)} .
-          ${sparqlEscapeUri(newAuthConf)}
-            dgftSec:secrets ${sparqlEscapeUri(newCreds)} .
-          ${sparqlEscapeUri(newCreds)} meb:username ?user ;
-            muAccount:password ?pass .
-          ${sparqlEscapeUri(newAuthConf)}
-            dgftSec:securityConfiguration ${sparqlEscapeUri(newConf)} .
-          ${sparqlEscapeUri(newConf)}
-            ?srcConfP ?srcConfO .
-        }
-      }
-      WHERE {
-        GRAPH ${sparqlEscapeUri(submissionGraph)} {
-          ${sparqlEscapeUri(authData.authenticationConfiguration)}
-            dgftSec:securityConfiguration ?srcConfg.
-          ?srcConfg ?srcConfP ?srcConfO.
-
-          ${sparqlEscapeUri(authData.authenticationConfiguration)}
-            dgftSec:secrets ?srcSecrets.
-          ?srcSecrets  meb:username ?user ;
-            muAccount:password ?pass .
-        }
-     }`;
-  } else if (authData.secType == env.OAUTH2) {
-    cloneQuery = `
-      ${env.PREFIXES}
-      INSERT {
-        GRAPH ${sparqlEscapeUri(submissionGraph)} {
-          ${sparqlEscapeUri(remoteDataObjectUri)}
-            dgftSec:targetAuthenticationConfiguration
-              ${sparqlEscapeUri(newAuthConf)} .
-          ${sparqlEscapeUri(newAuthConf)}
-            dgftSec:secrets
-              ${sparqlEscapeUri(newCreds)} .
-          ${sparqlEscapeUri(newCreds)} dgftOauth:clientId ?clientId ;
-            dgftOauth:clientSecret ?clientSecret .
-          ${sparqlEscapeUri(newAuthConf)}
-            dgftSec:securityConfiguration ${sparqlEscapeUri(newConf)} .
-          ${sparqlEscapeUri(newConf)}
-            ?srcConfP ?srcConfO .
-        }
-      }
-      WHERE {
-        GRAPH ${sparqlEscapeUri(submissionGraph)} {
-          ${sparqlEscapeUri(authData.authenticationConfiguration)}
-            dgftSec:securityConfiguration ?srcConfg.
-          ?srcConfg ?srcConfP ?srcConfO.
-
-          ${sparqlEscapeUri(authData.authenticationConfiguration)}
-            dgftSec:secrets ?srcSecrets.
-          ?srcSecrets  dgftOauth:clientId ?clientId ;
-            dgftOauth:clientSecret ?clientSecret .
-        }
-     }`;
-  }
-  else {
-    throw `Unsupported Security type ${authData.secType}`;
-  }
-
-  await update(cloneQuery);
-
-  return { newAuthConf, newConf, newCreds };
-
 }
 
 export async function updateTaskOndownloadEvent(job, task, downloadStatus) {
