@@ -69,7 +69,7 @@ export async function updateTaskOndownloadEvent(job,
   // kalliope creates conversation flow
 }
 
-async function publishMessage(taskUri){
+async function publishMessage(taskUri) {
   const data  = await getInterestingDataFromTask(taskUri);
   if(!data) {
     throw new Error('Unexpected error while publishing message: no data found');
@@ -148,7 +148,7 @@ async function getInterestingDataFromTask(task) {
   return parseResult(response)[0];
 }
 
-async function loadFileData(fileUri){
+async function loadFileData(fileUri) {
   console.log(`Getting contents of file ${fileUri}`);
   const path = fileUri.replace('share://', '/share/');
   const content = await fs.readFile(path, 'utf-8');

@@ -8,7 +8,7 @@ import { querySudo as query, updateSudo as update } from '@lblod/mu-auth-sudo';
 import fs from 'fs-extra';
 import * as env from '../../env';
 
-export async function updateMetaDataAttachment(attachments){
+export async function updateMetaDataAttachment(attachments) {
   // adds some file meta-data to the logical file deduced from the physical file
   // See https://chat.semte.ch/channel/mu-semtech?msg=oSqRuhr5Fji87aWat
   // as to why this should not be done in by the remote-url service
@@ -42,7 +42,7 @@ export async function updateMetaDataAttachment(attachments){
   await update(updateAttachQuery);
 }
 
-export async function updateBerichtAndMessage({ taskUri, messageUri, message, conversations }){
+export async function updateBerichtAndMessage({ taskUri, messageUri, message, conversations }) {
   const conversationUri = Object.keys(conversations)[0];
   const conversation = conversations[conversationUri];
 
