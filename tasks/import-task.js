@@ -15,6 +15,7 @@ import { attachClonedAuthenticationConfiguraton } from '../lib/download-file-hel
 import { validate } from './helpers/import-task-validation-helpers';
 import { extractEntities, enrich }  from './helpers/import-task-extracting-helpers';
 import { scheduleAttachments }  from './helpers/import-task-schedule-attachement-helpers';
+import { updateMetaDataAttachment, updateBerichtAndMessage } from './helpers/import-task-publication-helpers';
 
 export async function startTask(taskUri) {
   //lock first
@@ -61,8 +62,11 @@ export async function updateTaskOndownloadEvent(job,
       await publishMessage(task);
       await updateStatus(task, env.TASK_STATUSES.success);
     }
-
   }
+  //clean up on general fail
+  // extract to file
+  // error sit flow
+  // kalliope creates conversation flow
 }
 
 async function publishMessage(taskUri){
@@ -77,43 +81,9 @@ async function publishMessage(taskUri){
   const { message, attachments, conversations } =
         extractEntities(rdfaExtractor.triples, messageUri);
   enrich({ message, attachments, conversations, rdfaExtractor });
-  const conversationUri = Object.keys(conversations)[0];
-  const conversation = conversations[conversationUri];
+  await updateMetaDataAttachment(attachments);
+  await updateBerichtAndMessage({ taskUri, messageUri, message, conversations });
 
-  const publishQueryStr = `
-    ${env.PREFIXES}
-    DELETE {
-      GRAPH ?g {
-        ?conversation ext:lastMessage ?o.
-      }
-    }
-    WHERE {
-      VALUES ?conversation {
-        ${sparqlEscapeUri(conversationUri)}
-      }
-      GRAPH ?g {
-        ?conversation ext:lastMessage ?o.
-      }
-    }
-    ;
-    INSERT {
-      GRAPH ?g {
-        ${sparqlEscapeUri(messageUri)} mu:uuid ${sparqlEscapeString(uuid())}.
-        ${message.map(t => t.toNT()).join('\n') }
-        ${conversation.map(t => t.toNT()).join('\n') }
-        ${sparqlEscapeUri(conversationUri)} ext:lastMessage ${sparqlEscapeUri(messageUri)}.
-     }
-    }
-    WHERE {
-      VALUES ?task {
-       ${sparqlEscapeUri(taskUri)}
-      }
-      GRAPH ?g {
-        ?task a task:Task.
-     }
-    }
-  `;
-  await update(publishQueryStr);
 }
 
 function areAllDownloadsFinalState(statusesData) {
