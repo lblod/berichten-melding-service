@@ -77,15 +77,31 @@ async function publishMessage(taskUri){
   const { message, attachments, conversations } =
         extractEntities(rdfaExtractor.triples, messageUri);
   enrich({ message, attachments, conversations, rdfaExtractor });
-  const conversation = Object.keys(conversations).map(k => conversations[k])[0];
+  const conversationUri = Object.keys(conversations)[0];
+  const conversation = conversations[conversationUri];
 
   const publishQueryStr = `
     ${env.PREFIXES}
+    DELETE {
+      GRAPH ?g {
+        ?conversation ext:lastMessage ?o.
+      }
+    }
+    WHERE {
+      VALUES ?conversation {
+        ${sparqlEscapeUri(conversationUri)}
+      }
+      GRAPH ?g {
+        ?conversation ext:lastMessage ?o.
+      }
+    }
+    ;
     INSERT {
       GRAPH ?g {
         ${sparqlEscapeUri(messageUri)} mu:uuid ${sparqlEscapeString(uuid())}.
         ${message.map(t => t.toNT()).join('\n') }
         ${conversation.map(t => t.toNT()).join('\n') }
+        ${sparqlEscapeUri(conversationUri)} ext:lastMessage ${sparqlEscapeUri(messageUri)}.
      }
     }
     WHERE {
