@@ -34,8 +34,15 @@ export async function startTask({jobUri, taskUri}) {
     await validate({ message, attachments, conversations, organisationUri, vendorUri });
 
     //schedule the attachments
-    await scheduleAttachments({ jobUri, taskUri, attachments });
-    // We wait until all attachments are correctly downloaded, before publish the message to loket.
+    if(Object.keys(attachments).length) {
+      // We wait until all attachments are correctly downloaded, before publish the message to loket.
+      await scheduleAttachments({ jobUri, taskUri, attachments });
+    }
+    else {
+      await publishMessage(taskUri);
+      await updateStatus(taskUri, env.TASK_STATUSES.success);
+    }
+
   }
   catch (e) {
     const authconfig = await getAuthticationConfigurationForJob(jobUri);
