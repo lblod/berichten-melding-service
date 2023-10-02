@@ -6,6 +6,9 @@ import { updateTaskOndownloadEvent  as updateRegisterTaskOnDownloadEvent } from 
 import { startTask as startImportTask } from './import-task';
 import { updateTaskOndownloadEvent as updateImportTaskOnDownloadEvent } from './import-task';
 
+/*
+ * Main entry point for processing deltas
+ */
 export async function dispatchOnDelta(req) {
   const remoteDataInfo = getRemoteDataObjectInfoDelta(req);
   if(remoteDataInfo.length) {

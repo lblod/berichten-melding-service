@@ -18,6 +18,9 @@ import {
   cleanCredentials
 } from '../support';
 
+/*
+ * Main entry point to schedule the registration job
+ */
 export async function scheduleJob(store,
                                   {
                                     href,
