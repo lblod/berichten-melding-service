@@ -16,10 +16,29 @@ import { updateMetaDataAttachment,
 export async function startTask(taskUri) {
   //lock first
   await updateStatus(taskUri, env.TASK_STATUSES.busy);
+export async function startTask({job, task}) {
+    //lock first
+    await updateStatus(task, env.TASK_STATUSES.busy);
 
   const data  = await getInterestingDataFromTask(taskUri);
   if(!data) {
     throw new Error('Not all data found');
+    const data  = await getInterestingDataFromTask(task);
+    if(!data) {
+      throw new Error('Not all expected data found in source HTML');
+    }
+    const { pFile, url, messageUri, organisationUri, vendorUri, jobUri } = data;
+    const html = await loadFileData(pFile);
+    const rdfaExtractor = new RdfaExtractor(html, url);
+    rdfaExtractor.parse();
+    const { message, attachments, conversations } =
+          extractEntities(rdfaExtractor.triples, messageUri);
+
+    await validate({ message, attachments, conversations, organisationUri, vendorUri });
+
+    //schedule the attachments
+    await scheduleAttachments({ jobUri, task, attachments });
+    // We wait until all attachments are correctly downloaded, before publish the message to loket.
   }
   const { pFile, url, messageUri, organisationUri, vendorUri, jobUri } = data;
   const html = await loadFileData(pFile);

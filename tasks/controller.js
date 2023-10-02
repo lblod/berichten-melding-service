@@ -57,10 +57,12 @@ async function processOnTaskUpdateEvent(taskDeltaData) {
         return;
       }
       if(taskInfo.operation == 'http://lblod.data.gift/id/jobs/concept/TaskOperation/import-bericht') {
-        await startImportTask(taskInfo.task);
+        await startImportTask({
+          job: taskInfo.job,
+          task: taskInfo.task
+        });
       }
     }
-
   }
 }
 
