@@ -8,6 +8,31 @@ import {
 import * as env from './env';
 import * as N3 from 'n3';
 
+export async function updateStatus(subject, newStatus) {
+  const queryStr = `
+   ${env.PREFIXES}
+   DELETE {
+    GRAPH ?g {
+      ?subject adms:status ?status.
+    }
+   }
+   INSERT {
+    GRAPH ?g {
+      ?subject adms:status ${sparqlEscapeUri(newStatus)}.
+    }
+   }
+   WHERE {
+     VALUES ?subject {
+       ${sparqlEscapeUri(subject)}
+     }
+    GRAPH ?g {
+      ?subject adms:status ?status.
+    }
+   }
+  `;
+  await update(queryStr);
+}
+
 export async function isSubmitted(resource, submissionGraph) {
   const result = await query(`
       SELECT (COUNT(*) as ?count)

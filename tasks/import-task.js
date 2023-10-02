@@ -1,8 +1,7 @@
 import { sparqlEscapeUri } from 'mu';
 import { querySudo as query } from '@lblod/mu-auth-sudo';
 import fs from 'fs-extra';
-import { updateStatus } from '../lib/task-utils';
-import { parseResult, cleanCredentials } from '../support';
+import { updateStatus, parseResult, cleanCredentials } from '../support';
 import * as env from '../env';
 import {
   attachClonedAuthenticationConfiguraton,

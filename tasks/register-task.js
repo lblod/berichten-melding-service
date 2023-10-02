@@ -1,6 +1,5 @@
 import { updateSudo as update } from '@lblod/mu-auth-sudo';
 import * as env from '../env';
-import { updateStatus } from '../lib/task-utils';
 import {
   attachClonedAuthenticationConfiguraton,
   getAuthticationConfigurationForJob
@@ -14,6 +13,7 @@ import {
 } from 'mu';
 
 import {
+  updateStatus,
   storeToTurtle,
   sendErrorAlert,
   cleanCredentials
