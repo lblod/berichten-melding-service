@@ -66,12 +66,11 @@ async function processOnTaskUpdateEvent(taskDeltaData) {
 
 function getRemoteDataObjectInfoDelta (req) {
   const data = req.body
-        .map((changeset) => changeset.inserts)
-        .filter((inserts) => inserts.length > 0)
+        .map(changeset => changeset.inserts)
+        .filter(inserts => inserts.length > 0)
         .flat()
-        .filter((insert) => insert.predicate.value === env.ADMS_STATUS_PREDICATE)
-        .filter(
-          (insert) =>
+        .filter(insert => insert.predicate.value === env.ADMS_STATUS_PREDICATE)
+        .filter(insert =>
             insert.object.value === env.DOWNLOAD_STATUSES.success ||
             insert.object.value === env.DOWNLOAD_STATUSES.failure,
         );
