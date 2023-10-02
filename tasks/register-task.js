@@ -36,7 +36,7 @@ export async function scheduleJob(store,
   let submissionTaskUri = '';
 
   const jobUuid = uuid();
-  const jobUri = `http://data.lblod.info/id/task/${jobUuid}`;
+  const jobUri = `http://data.lblod.info/id/job/${jobUuid}`;
 
   try {
 
