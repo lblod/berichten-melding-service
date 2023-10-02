@@ -2,8 +2,12 @@ import { sparqlEscapeUri } from 'mu';
 import { querySudo as query } from '@lblod/mu-auth-sudo';
 import fs from 'fs-extra';
 import { updateStatus } from '../lib/task-utils';
-import { parseResult } from '../support';
+import { parseResult, cleanCredentials } from '../support';
 import * as env from '../env';
+import {
+  attachClonedAuthenticationConfiguraton,
+  getAuthticationConfigurationForJob
+       } from '../lib/download-file-helpers';
 import RdfaExtractor from '../lib/rdfa-extractor';
 import { validate } from './helpers/import-task-validation-helpers';
 import { extractEntities, enrich }  from './helpers/import-task-extracting-helpers';
@@ -13,21 +17,16 @@ import { updateMetaDataAttachment,
          saveMessageAsAttachment
        } from './helpers/import-task-publication-helpers';
 
-export async function startTask(taskUri) {
-  //lock first
-  await updateStatus(taskUri, env.TASK_STATUSES.busy);
-export async function startTask({job, task}) {
+export async function startTask({jobUri, taskUri}) {
+  try {
     //lock first
-    await updateStatus(task, env.TASK_STATUSES.busy);
+    await updateStatus(taskUri, env.TASK_STATUSES.busy);
 
-  const data  = await getInterestingDataFromTask(taskUri);
-  if(!data) {
-    throw new Error('Not all data found');
-    const data  = await getInterestingDataFromTask(task);
+    const data  = await getInterestingDataFromTask(taskUri);
     if(!data) {
       throw new Error('Not all expected data found in source HTML');
     }
-    const { pFile, url, messageUri, organisationUri, vendorUri, jobUri } = data;
+    const { pFile, url, messageUri, organisationUri, vendorUri } = data;
     const html = await loadFileData(pFile);
     const rdfaExtractor = new RdfaExtractor(html, url);
     rdfaExtractor.parse();
@@ -37,21 +36,18 @@ export async function startTask({job, task}) {
     await validate({ message, attachments, conversations, organisationUri, vendorUri });
 
     //schedule the attachments
-    await scheduleAttachments({ jobUri, task, attachments });
+    await scheduleAttachments({ jobUri, taskUri, attachments });
     // We wait until all attachments are correctly downloaded, before publish the message to loket.
   }
-  const { pFile, url, messageUri, organisationUri, vendorUri, jobUri } = data;
-  const html = await loadFileData(pFile);
-  const rdfaExtractor = new RdfaExtractor(html, url);
-  rdfaExtractor.parse();
-  const { message, attachments, conversations } =
-        extractEntities(rdfaExtractor.triples, messageUri);
-
-  await validate({ message, attachments, conversations, organisationUri, vendorUri });
-
-  //schedule the attachments
-  await scheduleAttachments({ jobUri, taskUri, attachments });
-  // We wait until all attachments are correctly downloaded, before publish the message to loket.
+  catch (e) {
+    const authconfig = await getAuthticationConfigurationForJob(jobUri);
+    if(authconfig) {
+      await cleanCredentials(authconfig);
+    }
+    await updateStatus(taskUri, env.TASK_STATUSES.failed);
+    e.job = jobUri;
+    throw e;
+  }
 }
 
 export async function updateTaskOndownloadEvent(job,
@@ -60,27 +56,36 @@ export async function updateTaskOndownloadEvent(job,
                                                 fileUri,
                                                 collectionUri
                                                ) {
+  try {
+    const statusesData = await getAllDownloadsStatus(collectionUri);
 
-  const statusesData = await getAllDownloadsStatus(collectionUri);
-
-  if(!areAllDownloadsFinalState(statusesData)) {
-    console.log(`
-      Task ${task} with collection ${collectionUri} has downloads still in need of processing.
-      Doing nothing...
-   `);
-  }
-  else {
-    if(didAnyDownloadFail(statusesData)) {
-      // clean up attachments
+    if(!areAllDownloadsFinalState(statusesData)) {
+      console.log(`
+        Task ${task} with collection ${collectionUri} has downloads still in need of processing.
+        Doing nothing...
+     `);
     }
     else {
-      await publishMessage(task);
-      await updateStatus(task, env.TASK_STATUSES.success);
+      if(didAnyDownloadFail(statusesData)) {
+        const errorMsg = `Some of the downloads of the attachments failed for job ${job}`;
+        throw new Error(errorMsg);
+        //TODO: clean up attachments
+      }
+      else {
+        await publishMessage(task);
+        await updateStatus(task, env.TASK_STATUSES.success);
+      }
     }
   }
-  //clean up on general fail
-  // error sit flow
-  // kalliope creates conversation flow
+  catch (e) {
+    const authconfig = await getAuthticationConfigurationForJob(job);
+    if(authconfig) {
+      await cleanCredentials(authconfig);
+    }
+    await updateStatus(task, env.TASK_STATUSES.failed);
+    e.job = job;
+    throw e;
+  }
 }
 
 async function publishMessage(taskUri) {

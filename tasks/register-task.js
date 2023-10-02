@@ -1,7 +1,10 @@
 import { updateSudo as update } from '@lblod/mu-auth-sudo';
 import * as env from '../env';
 import { updateStatus } from '../lib/task-utils';
-import { attachClonedAuthenticationConfiguraton } from '../lib/download-file-helpers';
+import {
+  attachClonedAuthenticationConfiguraton,
+  getAuthticationConfigurationForJob
+       } from '../lib/download-file-helpers';
 
 import {
   uuid,
@@ -15,8 +18,6 @@ import {
   sendErrorAlert,
   cleanCredentials
 } from '../support';
-
-import * as jobsAndTasks from '../jobAndTaskManagement';
 
 export async function scheduleJob(store,
                                   {
@@ -181,36 +182,46 @@ export async function scheduleJob(store,
     if (newAuthConf?.newAuthConf) {
       await cleanCredentials(newAuthConf.newAuthConf);
     }
+    e.job = jobUri;
     throw e;
   }
 }
 
 export async function updateTaskOndownloadEvent(job, task, downloadStatus) {
-  if(downloadStatus == env.DOWNLOAD_STATUSES.failure) {
-    const errorMessage = `Failed download register for task ${task}`;
-    // TODO: create and link an error to job, but job-controller is currently broken
-    await updateStatus(task, env.TASK_STATUSES.failed);
-    throw new Error(errorMessage);
-  }
-  else if(downloadStatus == env.DOWNLOAD_STATUSES.success) {
-    const updateResultsContainer = `
-      ${env.PREFIXES}
-      INSERT {
-        GRAPH ?g {
-          ?task task:resultsContainer ?resultsContainer.
-        }
-      }
-      WHERE {
-        GRAPH ?g {
-          VALUES ?task {
-            ${sparqlEscapeUri(task)}
+  try {
+    if(downloadStatus == env.DOWNLOAD_STATUSES.failure) {
+      const errorMessage = `Failed to download source HTML for ${job}`;
+      throw new Error(errorMessage);
+    }
+    else if(downloadStatus == env.DOWNLOAD_STATUSES.success) {
+      const updateResultsContainer = `
+        ${env.PREFIXES}
+        INSERT {
+          GRAPH ?g {
+            ?task task:resultsContainer ?resultsContainer.
           }
-          ?task a task:Task;
-             task:inputContainer ?resultsContainer.
         }
-      }
-    `;
-    await update(updateResultsContainer);
-    await updateStatus(task, env.TASK_STATUSES.success);
+        WHERE {
+          GRAPH ?g {
+            VALUES ?task {
+              ${sparqlEscapeUri(task)}
+            }
+            ?task a task:Task;
+               task:inputContainer ?resultsContainer.
+          }
+        }
+      `;
+      await update(updateResultsContainer);
+      await updateStatus(task, env.TASK_STATUSES.success);
+    }
+  }
+  catch (e) {
+    const authconfig = await getAuthticationConfigurationForJob(job);
+    if(authconfig) {
+      await cleanCredentials(authconfig);
+    }
+    await updateStatus(task, env.TASK_STATUSES.failed);
+    e.job = job;
+    throw e;
   }
 }
