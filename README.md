@@ -60,7 +60,7 @@ Add the service to your `docker-compose.yml`:
 
 ```yaml
   berichtencentrum-melding:
-    image: lblod:berichten-melding-service:x.y.z
+    image: lblod/berichten-melding-service:x.y.z
     volumes:
       - ./data/files:/share
 ```
