@@ -15,7 +15,6 @@ import {
 import {
   updateStatus,
   storeToTurtle,
-  sendErrorAlert,
   cleanCredentials
 } from '../support';
 

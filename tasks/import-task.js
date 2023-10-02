@@ -4,7 +4,6 @@ import fs from 'fs-extra';
 import { updateStatus, parseResult, cleanCredentials } from '../support';
 import * as env from '../env';
 import {
-  attachClonedAuthenticationConfiguraton,
   getAuthticationConfigurationForJob
        } from '../lib/download-file-helpers';
 import RdfaExtractor from '../lib/rdfa-extractor';
