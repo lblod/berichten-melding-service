@@ -107,3 +107,37 @@ export async function scheduleAttachments( { jobUri, taskUri, attachments } ) {
     await update(remoteDataObjectQuery);
   }
 }
+
+
+export async function cleanUpAttachmentsForTask(task) {
+  const queryStr = `
+    ${env.PREFIXES}
+    DELETE {
+      GRAPH ?g {
+        ?collection dct:hasPart ?lFile.
+        ?lFile ?lFileP ?lFileO.
+        ?pFile nie:dataSource ?lFile;
+          ?pFileP ?pFileO.
+      }
+    }
+    WHERE {
+      VALUES ?task {
+       ${sparqlEscapeUri(task)}
+      }
+      GRAPH ?g {
+        ?job a cogs:Job.
+        ?task task:inputContainer|task:resultsContainer ?container;
+          dct:isPartOf ?job.
+        ?container task:hasHarvestingCollection ?collection.
+        ?collection dct:hasPart ?lFile.
+
+        ?lFile ?lFileP ?lFileO.
+
+        ?pFile nie:dataSource ?lFile;
+          ?pFileP ?pFileO.
+      }
+    }
+  `;
+
+  await update(queryStr);
+}

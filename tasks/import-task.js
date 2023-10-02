@@ -9,7 +9,7 @@ import {
 import RdfaExtractor from '../lib/rdfa-extractor';
 import { validate } from './helpers/import-task-validation-helpers';
 import { extractEntities, enrich }  from './helpers/import-task-extracting-helpers';
-import { scheduleAttachments }  from './helpers/import-task-schedule-attachement-helpers';
+import { scheduleAttachments, cleanUpAttachmentsForTask }  from './helpers/import-task-attachement-helpers';
 import { updateMetaDataAttachment,
          updateBerichtAndMessage,
          saveMessageAsAttachment
@@ -42,6 +42,7 @@ export async function startTask({jobUri, taskUri}) {
     if(authconfig) {
       await cleanCredentials(authconfig);
     }
+    await cleanUpAttachmentsForTask(taskUri);
     await updateStatus(taskUri, env.TASK_STATUSES.failed);
     e.job = jobUri;
     throw e;
@@ -67,7 +68,6 @@ export async function updateTaskOndownloadEvent(job,
       if(didAnyDownloadFail(statusesData)) {
         const errorMsg = `Some of the downloads of the attachments failed for job ${job}`;
         throw new Error(errorMsg);
-        //TODO: clean up attachments
       }
       else {
         await publishMessage(task);
@@ -80,6 +80,7 @@ export async function updateTaskOndownloadEvent(job,
     if(authconfig) {
       await cleanCredentials(authconfig);
     }
+    await cleanUpAttachmentsForTask(task);
     await updateStatus(task, env.TASK_STATUSES.failed);
     e.job = job;
     throw e;
