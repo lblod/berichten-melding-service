@@ -111,8 +111,9 @@ app.post('/delta', async function (req, res) {
     console.error(e.message);
     if (!e.alreadyStoredError)
       sendErrorAlert({
-        message: 'Could not process a delta status update',
+        message: `Could not process a delta status update, retreived message: \n ${e.message}`,
         detail: JSON.stringify({ error: e.message }),
+        job: e.job || ''
       });
     res.status(500).json({
       errors: [

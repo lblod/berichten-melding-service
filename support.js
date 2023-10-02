@@ -141,8 +141,20 @@ export function cleanseRequestBody(body) {
   return cleansed;
 }
 
-export async function sendErrorAlert({ message, detail, reference }) {
+export async function sendErrorAlert({ message, detail, reference, job }) {
   if (!message) throw 'Error needs a message describing what went wrong.';
+
+  let graph = 'http://mu.semte.ch/graphs/error';
+  if(job) {
+    graph = parseResult(await query(`
+      ${env.PREFIXES}
+      SELECT DISTINCT ?g WHERE {
+        GRAPH ?g {
+         ${sparqlEscapeUri(job)} a cogs:Job.
+        }
+      }`))[0].g;
+  }
+
   const id = uuid();
   const uri = `http://data.lblod.info/errors/${id}`;
   const referenceTriple = reference
@@ -152,15 +164,17 @@ export async function sendErrorAlert({ message, detail, reference }) {
   const detailTriple = detail
     ? `${sparqlEscapeUri(uri)}
          oslc:largePreview ${sparqlEscapeString(detail)} .`
-    : '';
-  const q = `
-    PREFIX mu:   <http://mu.semte.ch/vocabularies/core/>
-    PREFIX oslc: <http://open-services.net/ns/core#>
-    PREFIX dct:  <http://purl.org/dc/terms/>
-    PREFIX xsd:  <http://www.w3.org/2001/XMLSchema#>
+        : '';
 
+  let jobTripleStr = '';
+  if(job) {
+    jobTripleStr = `${sparqlEscapeUri(job)} task:error ${sparqlEscapeUri(uri)}`;
+  }
+
+  const q = `
+   ${env.PREFIXES}
     INSERT DATA {
-      GRAPH <http://mu.semte.ch/graphs/error> {
+      GRAPH ${sparqlEscapeUri(graph)} {
         ${sparqlEscapeUri(uri)}
           a oslc:Error ;
           mu:uuid ${sparqlEscapeString(id)} ;
@@ -170,13 +184,15 @@ export async function sendErrorAlert({ message, detail, reference }) {
           dct:creator ${sparqlEscapeUri(env.CREATOR)} .
         ${referenceTriple}
         ${detailTriple}
+
+       ${jobTripleStr}
       }
     }`;
   try {
     await update(q);
     return uri;
   } catch (e) {
-    console.warn(
+    console.error(
       `[WARN] Something went wrong while trying to store an error.\nMessage: ${e}\nQuery: ${q}`,
     );
   }
