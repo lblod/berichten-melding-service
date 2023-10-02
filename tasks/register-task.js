@@ -65,8 +65,6 @@ export async function scheduleJob(store,
         }
       }`;
 
-    await update(createJobQueryString);
-
     // task
     nowSparql = sparqlEscapeDateTime(new Date().toISOString());
     const submissionTaskUuid = uuid();
@@ -89,8 +87,6 @@ export async function scheduleJob(store,
       }
     `;
 
-    await update(submissionTaskQuery);
-
     // container
     const containerUuid = uuid();
     const containerUri = `http://data.lblod.info/id/container/${containerUuid}`;
@@ -110,8 +106,6 @@ export async function scheduleJob(store,
     }
     `;
 
-    await update(containerTaskQuery);
-
     //harvesting collection
     const collectionUuid = uuid();
     const collectionUri = `http://data.lblod.info/id/harvest-collection/${collectionUuid}`;
@@ -128,12 +122,17 @@ export async function scheduleJob(store,
     }
     `;
 
+    // We bundle the calls, in reverse order, here
+    // The JobCreation query 'signals' to other services (in casu the vendor-data-distribution)
+    // that sufficient information is ready to act on it
     await update(collectionQuery);
+    await update(containerTaskQuery);
+    await update(submissionTaskQuery);
+    await update(createJobQueryString);
 
     const timestampSparql = sparqlEscapeDateTime(new Date());
     const remoteDataId = uuid();
     const remoteDataUri = `http://data.lblod.info/id/remote-data-objects/${remoteDataId}`;
-
 
     //See documention of function for reasoning
     newAuthConf = await attachClonedAuthenticationConfiguraton(
@@ -169,7 +168,9 @@ export async function scheduleJob(store,
         }
       }
     `;
+
     await update(remoteDataObjectQuery);
+
 
     return { submittedResource, jobUri };
   }
