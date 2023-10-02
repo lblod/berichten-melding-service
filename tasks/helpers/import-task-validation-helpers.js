@@ -128,7 +128,7 @@ export async function validate({ message, attachments, conversations, organisati
 function validateDatetime(triple) {
   //we use the same validation as we use for the submissions/forms, to be consistent.
   const validateDateTime = constraintForUri('http://lblod.data.gift/vocabularies/forms/ValidDateTime');
-  //some conversion :-/
+  //some conversion boilerplate :-/
   return validateDateTime({
     value: triple.object,
     datatype: { value: triple.datatype }
