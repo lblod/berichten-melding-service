@@ -31,7 +31,7 @@ For more context refer to: [Berichtencentru-API](https://lblod.github.io/pages-v
      - Parses the rdfa, extracts, and validates the content. If any attachments need downloading, they are scheduled via [download-url-service](https://github.com/lblod/download-url-service). This task is marked as successful once all conditions are met.
 
 
-This process entails a elaborate interaction amongst three 'lblod' services:
+This process entails an elaborate interaction among three 'lblod' services:
 - [Download-URL-Service](https://github.com/lblod/download-url-service)
 - [Job-Controller-Service](https://github.com/lblod/job-controller-service)
 - The current service
@@ -45,11 +45,11 @@ See code.
 Note: this is where you should put your breakpoints when debugging.
 
 `POST /melding`
-The entrypoint for vendors to trigger a new submission.
+The entry point for vendors to trigger a new submission.
 Refer to: [Berichtencentru-API](https://lblod.github.io/pages-vendors/#/docs/berichtencentrum-api)
 
 `POST /delta`
-The entrypoint for delta-messages to process deltas.
+The entry point for delta-messages to process deltas.
 
 
 ## Getting started
@@ -128,7 +128,7 @@ See [error-alert-service](https://github.com/lblod/loket-error-alert-service)
 
 ## How-to guides
 
-### Do a submission of a `schema:Message`
+### Make a submission of a `schema:Message`
 
 Refer to: [Berichtencentrum-API](https://lblod.github.io/pages-vendors/#/docs/berichtencentrum-api)
 
@@ -157,7 +157,7 @@ INSERT DATA {
 ```
 
 ### Model
-This section gives a brief overview of the models used to achieve the goal of storing a message correctly.
+This section briefly overviews the models used to achieve the goal of storing a message correctly.
 
 #### `schema:Message` & `schema:Conversation`
 This is the core of the data that is exchanged, for more information refer to: [Berichtencentrum-API](https://lblod.github.io/pages-vendors/#/docs/berichtencentrum-api).
@@ -167,7 +167,7 @@ This information is used to control multiple steps in the harvesting of the `sch
 Refer to [Job-controller-service](https://github.com/lblod/job-controller-service) for more information.
 
 ### `nfo:RemoteDataObject` & `nfo:FileDataObject`
-Attachments are exchanged; the meta data of this is stored in the database.
+Attachments are exchanged; the metadata of this is stored in the database.
 
 Refer to [Download-url-service](https://github.com/lblod/download-url-service)
   and [File-service](https://github.com/mu-semtech/file-service)
