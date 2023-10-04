@@ -59,6 +59,7 @@ export async function scheduleJob(store,
           ${sparqlEscapeUri(jobUri)}
             a cogs:Job ;
             mu:uuid ${sparqlEscapeString(jobUuid)} ;
+            dct:subject ${sparqlEscapeUri(submittedResource)};
             dct:creator services:berichten-melding-service ;
             adms:status js:busy ;
             dct:created ${nowSparql} ;
