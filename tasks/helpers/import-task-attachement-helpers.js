@@ -125,7 +125,6 @@ export async function cleanUpAttachmentsForTask(task) {
        ${sparqlEscapeUri(task)}
       }
       GRAPH ?g {
-        ?job a cogs:Job.
         ?task task:inputContainer|task:resultsContainer ?container;
           dct:isPartOf ?job.
         ?container task:hasHarvestingCollection ?collection.
