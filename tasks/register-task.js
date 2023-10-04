@@ -60,6 +60,8 @@ export async function scheduleJob(store,
             a cogs:Job ;
             mu:uuid ${sparqlEscapeString(jobUuid)} ;
             dct:subject ${sparqlEscapeUri(submittedResource)};
+            schema:sender ${sparqlEscapeUri(organisation)};
+            pav:providedBy ${sparqlEscapeUri(vendor)};
             dct:creator services:berichten-melding-service ;
             adms:status js:busy ;
             dct:created ${nowSparql} ;
@@ -100,10 +102,7 @@ export async function scheduleJob(store,
       GRAPH ${sparqlEscapeUri(submissionGraph)} {
         ${sparqlEscapeUri(containerUri)}
           a nfo:DataContainer ;
-          mu:uuid ${sparqlEscapeString(containerUuid)} ;
-          dct:subject ${sparqlEscapeUri(submittedResource)};
-          schema:sender ${sparqlEscapeUri(organisation)};
-          pav:providedBy ${sparqlEscapeUri(vendor)}.
+          mu:uuid ${sparqlEscapeString(containerUuid)}.
 
         ${sparqlEscapeUri(submissionTaskUri)} task:inputContainer ${sparqlEscapeUri(containerUri)}.
      }
@@ -119,6 +118,7 @@ export async function scheduleJob(store,
       GRAPH ${sparqlEscapeUri(submissionGraph)} {
         ${sparqlEscapeUri(collectionUri)}
           a  hrvst:HarvestingCollection ;
+          dct:type ext:sourceFileMessage;
           mu:uuid ${sparqlEscapeString(collectionUuid)}.
 
        ${sparqlEscapeUri(containerUri)} task:hasHarvestingCollection ${sparqlEscapeUri(collectionUri)}.

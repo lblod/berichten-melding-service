@@ -157,12 +157,15 @@ async function getInterestingDataFromTask(task) {
          task:inputContainer ?container;
          dct:isPartOf ?jobUri.
 
-       ?container task:hasHarvestingCollection ?collection;
+       ?jobUri a cogs:Job;
          dct:subject ?messageUri;
          schema:sender ?organisationUri;
          pav:providedBy ?vendorUri.
 
-       ?collection dct:hasPart ?remoteDataObject.
+       ?container task:hasHarvestingCollection ?collection.
+
+       ?collection dct:hasPart ?remoteDataObject;
+         dct:type ext:sourceFileMessage.
 
        ?remoteDataObject nie:url ?url.
        ?pFile nie:dataSource ?remoteDataObject.
