@@ -1,6 +1,6 @@
 {
   "name": "berichten-melding-service",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Microservice providing an API for external parties to process berichten.",
   "dependencies": {
     "@lblod/submission-form-helpers": "2.3.0",
