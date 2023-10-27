@@ -70,21 +70,19 @@ export async function validate({ message, attachments, conversations, organisati
       Vendor ${sparqlEscapeUri(vendorUri)} can't act on behalf of ${sparqlEscapeUri(sender)}`);
   }
 
-  if(sender == env.ABB_URI) {
-    // the validation changes if ABB is the sender
-    const isNewConversationQuery = `
-      ${env.PREFIXES}
+  const isNewConversationQuery = `
+    ${env.PREFIXES}
       ASK {
        ${sparqlEscapeUri(conversation)} ?p ?o.
       }
     `;
-    const result = await query(isNewConversationQuery);
-    if(result?.boolean == true) {
-      throw Error(`Conversation ${sparqlEscapeUri(conversation)} already exists`);
+  const isNewConversation = await query(isNewConversationQuery);
+
+  if(sender != env.ABB_URI) {
+
+    if(!isNewConversation?.boolean) {
+      throw Error(`Conversation ${sparqlEscapeUri(conversation)} doesn't exist.`);
     }
-    // TODO: more checks needed?
-  }
-  else {
 
     if(recipient != env.ABB_URI) {
       throw Error(`
