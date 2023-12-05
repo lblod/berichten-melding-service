@@ -1,3 +1,4 @@
+import Triple from '../../lib/triple';
 export function extractEntities(triples, messageUri) {
   //message
   const message = sanitizeMessage(triples.filter(t => t.subject == messageUri));
@@ -44,6 +45,12 @@ export function extractEntities(triples, messageUri) {
 
 export function enrich({ message, rdfaExtractor }) {
   const messageUri = message[0].subject;
+  //Add hardcoded 'Opvraging'
+  message.push(new Triple({
+    subject: messageUri,
+    predicate: 'http://purl.org/dc/terms/type',
+    object: "Reactie"
+  }));
 
   // The text is extract as plain text. Most rdfa Extractors do this
   // Now, we're doing some trickery to extract the message as html
@@ -84,7 +91,6 @@ function sanitizeMessage(triples) {
   const whitelist = [
     'a',
     'http://www.w3.org/1999/02/22-rdf-syntax-ns#type',
-    'http://purl.org/dc/terms/type',
     'http://www.semanticdesktop.org/ontologies/2007/01/19/nie#hasPart',
     'http://schema.org/sender',
     'http://schema.org/recipient',
