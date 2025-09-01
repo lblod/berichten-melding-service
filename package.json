@@ -3,18 +3,19 @@
   "version": "1.0.2",
   "description": "Microservice providing an API for external parties to process berichten.",
   "dependencies": {
-    "@lblod/submission-form-helpers": "2.3.0",
-    "fs-extra": "8.1.0",
     "@lblod/marawa": "^0.7.1",
-    "jsdom": "^11.6.2",
-    "lodash": "^4.17.11",
     "@lblod/mu-auth-sudo": "^0.6.0",
+    "@lblod/submission-form-helpers": "2.3.0",
+    "argon2": "^0.44.0",
     "async-await-mutex-lock": "^1.0.9",
+    "env-var": "^7.3.0",
     "express-rate-limit": "^6.6.0",
+    "fs-extra": "8.1.0",
+    "jsdom": "^11.6.2",
     "jsonld": "^8.1.0",
+    "lodash": "^4.17.11",
     "n3": "^1.16.2",
-    "sparqljson-parse": "^2.2.0",
-    "env-var": "^7.3.0"
+    "sparqljson-parse": "^2.2.0"
   },
   "devDependencies": {
     "eslint": "^8.23.1",
