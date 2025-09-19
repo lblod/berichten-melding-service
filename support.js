@@ -7,6 +7,7 @@ import {
 } from 'mu';
 import * as env from './env';
 import * as N3 from 'n3';
+import * as argon2 from "argon2";
 
 export async function updateStatus(subject, newStatus) {
   const queryStr = `
@@ -119,18 +120,27 @@ export function parseResult(result) {
 export async function verifyKeyAndOrganisation(vendor, key, organisation) {
   const result = await query(`
     ${env.PREFIXES}
-    SELECT DISTINCT ?organisationID WHERE  {
+    SELECT DISTINCT ?organisationID ?agentHash WHERE  {
       GRAPH <http://mu.semte.ch/graphs/automatic-submission> {
         ${sparqlEscapeUri(vendor)}
           a foaf:Agent;
-          muAccount:key ${sparqlEscapeString(key)};
+          muAccount:keyHash ?agentHash;
           muAccount:canActOnBehalfOf ${sparqlEscapeUri(organisation)}.
       }
       ${sparqlEscapeUri(organisation)}
         mu:uuid ?organisationID.
     }`);
   if (result.results.bindings.length === 1) {
-    return result.results.bindings[0].organisationID.value;
+    const vendorKeyHash = result.results.bindings[0].agentHash.value;
+    try {
+      if (await argon2.verify(vendorKeyHash, key)) {
+        return result.results.bindings[0].organisationID.value;
+      } else {
+        return null;
+      }
+    } catch (err) {
+      return null;
+    }
   }
 }
 
