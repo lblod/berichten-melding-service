@@ -1,6 +1,6 @@
 {
   "name": "berichten-melding-service",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Microservice providing an API for external parties to process berichten.",
   "dependencies": {
     "@lblod/marawa": "^0.7.1",
