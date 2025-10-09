@@ -41,6 +41,9 @@ This while relying on Semantic-Works' backbone.
 ### Even deeper?
 See code.
 
+## Configuration
+- `USE_HASHED_KEY`: if set to `'true'`, the service will match the provided key against the hash stored in the DB. Disabled by default.
+
 ## API
 Note: this is where you should put your breakpoints when debugging.
 

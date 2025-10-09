@@ -40,6 +40,8 @@ export const CREATOR =
 export const ABB_URI =
   'http://data.lblod.info/id/bestuurseenheden/141d9d6b-54af-4d17-b313-8d1c30bc3f5b';
 
+export const USE_HASHED_KEY = process.env.USE_HASHED_KEY === 'true';
+
 export const PREFIX_TABLE = {
   meb: 'http://rdf.myexperiment.org/ontologies/base/',
   rdf: 'http://www.w3.org/1999/02/22-rdf-syntax-ns#',
